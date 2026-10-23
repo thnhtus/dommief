@@ -17,10 +17,12 @@ export function dommiefPlugin(opts: { root: string }) {
     },
     resolveId(id, importer) {
       if (id.startsWith('virtual:dommief/')) return '\0' + id;
-      if (id.endsWith('.md')) {
+      if (id.endsWith('.md') || id.endsWith('.md?meta')) {
         const base = importer ? path.dirname(importer) : process.cwd();
-        const abs = path.isAbsolute(id) ? id : path.resolve(base, id);
-        return '\0dommief-md:' + encodeURIComponent(abs);
+        const q = id.includes('?meta') ? '?meta' : '';
+        const clean = id.replace(/\?meta$/, '');
+        const abs = path.isAbsolute(clean) ? clean : path.resolve(base, clean);
+        return '\0dommief-md:' + encodeURIComponent(abs) + q;
       }
       return null;
     },
@@ -32,9 +34,12 @@ export function dommiefPlugin(opts: { root: string }) {
         return `export const site = ${JSON.stringify({ title: config.title, base: config.base })};`;
       }
       if (id.startsWith('\0dommief-md:')) {
-        const file = decodeURIComponent(id.slice('\0dommief-md:'.length));
+        const raw = id.slice('\0dommief-md:'.length);
+        const isMeta = raw.endsWith('?meta');
+        const file = decodeURIComponent(isMeta ? raw.slice(0, -5) : raw);
         const code = await fs.promises.readFile(file, 'utf8');
-        const { code: out } = await transformMarkdown(code, file);
+        const { code: out, meta } = await transformMarkdown(code, file);
+        if (isMeta) return { code: `export default ${JSON.stringify(meta)};`, map: null, moduleType: 'js' };
         return { code: out, map: null, moduleType: 'jsx' };
       }
       return null;

@@ -100,7 +100,7 @@
   },
   "repos": [
     {
-      "name": "<repo-name>",
+      "name": "dommief",
       "path": ".",
       "layer": "frontend"
     }
@@ -244,13 +244,12 @@
     }
   },
   "evidenceMode": "attested",
-  "evidenceCommandPattern": "npm run (test:scope|test:run|test:all|test:e2e:run|test:coverage|lint|build)|npx (vitest run|tsc -b|tsc --noEmit|eslint)",
-  "evidenceSampleCommand": "npm run test:scope -- src/test/x",
+  "evidenceCommandPattern": "pnpm (test|typecheck|lint|build)(?![:\\w-])( .*)?", "evidenceSampleCommand": "pnpm typecheck",
   "_evidenceNegativeSamples": "Lệnh KHÔNG được tính là evidence. Chiều ngược của evidenceSampleCommand: thiếu nó thì pattern `npm run .*` qua self-check xanh, và Gate 4 nhận `npm run dev` làm bằng chứng test.",
   "evidenceNegativeSamples": [
-    "npm run dev",
-    "npm run start",
-    "npm run preview"
+    "pnpm dev",
+    "pnpm test:watch",
+    "pnpm -C examples/docs dev"
   ],
   "tracker": {
     "urlPattern": "^https://app\\.clickup\\.com/t/.+",
