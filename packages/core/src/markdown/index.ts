@@ -4,66 +4,58 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
-import { toEstree } from 'hast-util-to-estree';
-import { toJs, jsx } from 'estree-util-to-js';
 import { visit } from 'unist-util-visit';
-import yaml from 'yaml';
 import type { Root as HastRoot } from 'hast';
+import { remarkMeta } from './remark-meta.js';
+import { rehypeSlug, rehypeAutolinkHeadings } from './rehype-slug.js';
+import { rehypeLink } from './rehype-link.js';
+import { rehypeImg } from './rehype-img.js';
+import { rehypeDesc, rehypeStrip } from './rehype-desc.js';
+import { rehypeText } from './rehype-text.js';
+import { toModule } from './to-module.js';
+import { DommiefError } from './errors.js';
 
 export interface TocItem { id: string; depth: number; title: string; }
-export interface TextFragment { type: 'content'|'title'; value: string; }
+export interface TextFragment { type: 'content' | 'title'; value: string; }
 export interface PageMeta {
   frontmatter: Record<string, unknown>;
   toc: TocItem[];
   texts: TextFragment[];
 }
 
-export async function transformMarkdown(source: string, _file: string): Promise<{ code: string; meta: PageMeta }> {
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ['yaml'])
-    .use(remarkGfm)
-    .use(() => (tree: any, file: any) => {
-      // parse frontmatter
-      if (tree.children?.[0]?.type === 'yaml') {
-        try { file.data.frontmatter = yaml.parse(tree.children[0].value) ?? {}; } catch { file.data.frontmatter = {}; }
-        tree.children.shift();
-      } else {
-        file.data.frontmatter = {};
-      }
-    })
-    .use(remarkRehype, { allowDangerousHtml: true })
-    .use(rehypeRaw);
-  const vfile: any = { data: {} };
-  const hast = await processor.run(processor.parse(source), vfile) as HastRoot;
-  // collect toc
-  const toc: TocItem[] = [];
-  const slugger = new (await import('github-slugger')).default();
-  visit(hast, 'element', (node: any) => {
-    if (/^h[1-6]$/.test(node.tagName)) {
-      const text = (node.children || []).map((c: any) => c.value || '').join('').trim();
-      const depth = Number(node.tagName.slice(1));
-      const id = node.properties?.id || slugger.slug(text);
-      if (!node.properties) node.properties = {};
-      node.properties.id = id;
-      toc.push({ id, depth, title: text });
-    }
-  });
-  // texts
-  const texts: TextFragment[] = [];
-  visit(hast, 'text', (node: any) => {
-    const v = (node.value || '').trim();
-    if (v) texts.push({ type: 'content', value: v });
-  });
-  const meta: PageMeta = { frontmatter: vfile.data?.frontmatter ?? {}, toc, texts };
-
-  const estree = toEstree(hast, { elementAttributeNameCase: 'react' }) as any;
-  const { value: code } = toJs(estree, { handlers: jsx });
-  const finalCode = `import React from 'react';
-export default function Content(){ return (
-${code.replace(/;\s*$/,'')}
-); }
-export const meta = ${JSON.stringify(meta)};
-`;
-  return { code: finalCode, meta };
+export async function transformMarkdown(source: string, file: string): Promise<{ code: string; meta: PageMeta }> {
+  let processor: any;
+  try {
+    processor = unified()
+      .use(remarkParse)
+      .use(remarkFrontmatter, ['yaml'])
+      .use(remarkGfm)
+      .use(remarkMeta, { filename: file })
+      .use(remarkRehype, { allowDangerousHtml: true })
+      .use(rehypeRaw)
+      .use(rehypeSlug)
+      .use(rehypeAutolinkHeadings)
+      .use(rehypeLink)
+      .use(rehypeImg, { base: '/' })
+      .use(rehypeDesc)
+      .use(rehypeStrip)
+      .use(rehypeText);
+  } catch (e) {
+    throw new DommiefError('failed to build pipeline', { file });
+  }
+  const vfile: any = { data: {}, path: file };
+  let hast: HastRoot;
+  try {
+    const tree = processor.parse(source);
+    hast = await processor.run(tree, vfile) as HastRoot;
+  } catch (e) {
+    throw new DommiefError('markdown transform failed: ' + (e as Error).message, { file });
+  }
+  const meta: PageMeta = {
+    frontmatter: (vfile.data?.frontmatter ?? {}) as Record<string, unknown>,
+    toc: (vfile.data?.toc ?? []) as TocItem[],
+    texts: (vfile.data?.texts ?? []) as TextFragment[],
+  };
+  const code = toModule(hast, meta);
+  return { code, meta };
 }

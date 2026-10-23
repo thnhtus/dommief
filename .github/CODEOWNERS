@@ -1,0 +1,6 @@
+# Harness guardrails: only team can edit these without review
+* @thnhtus
+docs/agents/ProjectRules.md @thnhtus
+harness.config.json @thnhtus
+scripts/validate-tasks.mjs @thnhtus
+.github/workflows/ @thnhtus
