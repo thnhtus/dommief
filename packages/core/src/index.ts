@@ -1,6 +1,7 @@
-export { defineConfig } from './config.js';
-export { loadConfig } from './config.js';
-export type { ResolvedConfig } from './config.js';
+export { defineConfig, loadConfig, loadConfigFile, resolveConfig } from './config.js';
+export type { ResolvedConfig, UserConfig } from './config.js';
+export { buildRouteTable } from './routes.js';
+export type { Route, RouteTable, SiteData, ResolvedLocale } from './types.js';
 export { transformMarkdown } from './markdown/index.js';
 export { DommiefError, formatError } from './markdown/errors.js';
 export type { PageMeta, TocItem, TextFragment } from './markdown/index.js';

@@ -20,8 +20,8 @@ export function rehypeDesc() {
 export function rehypeStrip() {
   // strip dangerous raw html? minimal: remove script tags
   return (tree: any) => {
-    visit(tree, 'element', (node: any, index: number, parent: any) => {
-      if (node.tagName === 'script' && parent) {
+    visit(tree, 'element', (node: any, index: number | undefined, parent: any) => {
+      if (node.tagName === 'script' && parent && index !== undefined) {
         parent.children.splice(index, 1);
         return index; // restart
       }

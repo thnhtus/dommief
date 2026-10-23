@@ -6,7 +6,7 @@ export function rehypeLink() {
       if (node.tagName === 'a' && node.properties?.href) {
         const href = String(node.properties.href);
         const m = href.match(/^(.*\.md)(#.*)?$/);
-        if (m) {
+        if (m && m[1] !== undefined) {
           node.properties.href = (m[1].replace(/\.md$/, '')) + (m[2] || '');
         }
       }
