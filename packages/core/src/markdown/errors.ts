@@ -1,8 +1,8 @@
 export class DommiefError extends Error {
   file: string;
-  line?: number;
-  col?: number;
-  code?: string;
+  line?: number | undefined;
+  col?: number | undefined;
+  code?: string | undefined;
   constructor(message: string, opts: { file?: string; line?: number; col?: number; code?: string } = {}) {
     super(message);
     this.name = 'DommiefError';

@@ -2,48 +2,53 @@ import type { Plugin } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig, type ResolvedConfig } from '../config.js';
-import { scanRoutes } from '../routes.js';
 import { transformMarkdown } from '../markdown/index.js';
+import { dommiefRoutesPlugin } from './routesPlugin.js';
+import { dommiefSitePlugin } from './sitePlugin.js';
+import { winPath } from '../utils/path.js';
 
+// Plugin tổng hợp: giữ phần transform md + ?meta, và uỷ thác virtual:dommief/routes
+// + virtual:dommief/site cho hai plugin riêng để invalidate độc lập (DM-206/209).
 export function dommiefPlugin(opts: { root: string }) {
   let config: ResolvedConfig;
-  let routes: ReturnType<typeof scanRoutes> = [];
-  const plugin: Plugin = {
-    name: 'dommief',
+  // object proxy để routes/site plugin đọc config sau khi configResolved chạy.
+  const cfgRef: any = {};
+  const markdownPlugin: Plugin = {
+    name: 'dommief:markdown',
     enforce: 'pre',
     async configResolved() {
       config = await loadConfig(opts.root);
-      routes = scanRoutes(config.root, config.srcDir, config.locales, config.forceKebabCase);
+      Object.assign(cfgRef, config);
     },
     resolveId(id, importer) {
+      if (id === 'virtual:dommief/routes' || id === 'virtual:dommief/site') return null;
       if (id.startsWith('virtual:dommief/')) return '\0' + id;
       if (id.endsWith('.md') || id.endsWith('.md?meta')) {
-        const base = importer ? path.dirname(importer) : process.cwd();
-        const q = id.includes('?meta') ? '?meta' : '';
+        const base = importer ? path.dirname(importer.replace(/\?meta$/, '')) : process.cwd();
+        const q = id.endsWith('?meta') ? '?meta' : '';
         const clean = id.replace(/\?meta$/, '');
-        const abs = path.isAbsolute(clean) ? clean : path.resolve(base, clean);
-        return '\0dommief-md:' + encodeURIComponent(abs) + q;
+        // Id = absolute POSIX path (+ `?meta`), KHÔNG `\0`: nhờ vậy `ModuleNode.file` là file md
+        // thật và Vite tự invalidate module trang khi file đổi (DM-209 ca (d)).
+        return winPath(path.isAbsolute(clean) ? clean : path.resolve(base, clean)) + q;
       }
       return null;
     },
     async load(id) {
-      if (id === '\0virtual:dommief/routes') {
-        return `export default ${JSON.stringify(routes.map(r => ({ id: r.id, path: r.path })))};`;
-      }
-      if (id === '\0virtual:dommief/site') {
-        return `export const site = ${JSON.stringify({ title: config.title, base: config.base })};`;
-      }
-      if (id.startsWith('\0dommief-md:')) {
-        const raw = id.slice('\0dommief-md:'.length);
-        const isMeta = raw.endsWith('?meta');
-        const file = decodeURIComponent(isMeta ? raw.slice(0, -5) : raw);
+      if (id.endsWith('.md') || id.endsWith('.md?meta')) {
+        const isMeta = id.endsWith('?meta');
+        const file = isMeta ? id.slice(0, -'?meta'.length) : id;
         const code = await fs.promises.readFile(file, 'utf8');
         const { code: out, meta } = await transformMarkdown(code, file);
-        if (isMeta) return { code: `export default ${JSON.stringify(meta)};`, map: null, moduleType: 'js' };
+        if (isMeta) {
+          // CONTRACTS §6: ?meta CHỈ trả frontmatter — không toc/texts.
+          return { code: `export default ${JSON.stringify({ frontmatter: meta.frontmatter })};`, map: null, moduleType: 'js' };
+        }
         return { code: out, map: null, moduleType: 'jsx' };
       }
       return null;
     },
   };
-  return plugin;
+  const routesPlugin = dommiefRoutesPlugin({ cwd: opts.root, config: cfgRef as any });
+  const sitePlugin = dommiefSitePlugin({ cwd: opts.root, config: cfgRef as any });
+  return [markdownPlugin, routesPlugin, sitePlugin] as Plugin[];
 }
