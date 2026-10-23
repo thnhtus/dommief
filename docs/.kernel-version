@@ -1,0 +1,3 @@
+0.17.3
+# spec-harness kernel đã cài. Do install.mjs ghi, đừng sửa tay.
+# Nâng: chạy lại installer. So sánh: npm view spec-harness version

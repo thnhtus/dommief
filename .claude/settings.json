@@ -1,0 +1,34 @@
+{
+  "_comment": "Guardrail ở tầng permission, không phải tầng prompt. Instructions.md §1 cấm những lệnh này bằng văn bản — nhưng văn bản là thứ model CHỌN tuân thủ. Deny ở đây thì không có chỗ để chọn. `git push` nằm ở `ask`, không phải `deny`: chỉ dừng hỏi user SAU gate cuối (status=reviewing), đồng ý thì chạy. Cài một lần, không bị đè khi nâng kernel; thêm bớt theo project. CỐ Ý KHÔNG deny `git worktree remove` và `git branch -D`: chính harness dùng chúng để dọn thứ nó vừa tạo (start-task step 2, Adversary-Mutation.md) — deny là chặn harness, không phải chặn tai nạn. TRẦN CỦA GUARDRAIL NÀY: deny khớp theo tool + prefix lệnh, nên nó chặn TAI NẠN chứ không chặn CỐ Ý — `Read(.env)` chặn tool Read, nhưng agent còn Bash, và `python3 -c \"print(open('.env').read())\"` thì không rule nào với tới. Thêm deny cho các đường đọc .env phổ biến là hạ xác suất, không phải đóng cửa. Secret thật thì đừng để trong repo — đó mới là lớp bảo vệ, không phải file này.",
+  "permissions": {
+    "ask": [
+      "Bash(git push:*)"
+    ],
+    "deny": [
+      "Bash(git reset --hard:*)",
+      "Bash(git stash:*)",
+      "Bash(git clean:*)",
+      "Bash(git restore:*)",
+      "Bash(git checkout --:*)",
+      "Bash(cat .env:*)",
+      "Bash(env:*)",
+      "Bash(printenv:*)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(.claude.json)"
+    ]
+  },
+  "_hooks": "Dán link task vào prompt → hook chạy `validate-tasks.mjs --route` và CHÈN một dòng context, không chạy gì cả. Ba nhánh: chưa có task folder → gợi ý /start-task; task đang dở → nhắc tiếp tục thay vì tạo folder thứ hai (đây mới là ca đắt: docs append-only, fork là không gỡ được); task đã xong → bảo đừng chạy lại. TRẦN: chỉ là GỢI Ý — model đọc rồi tự quyết, không có tool nào tên \"bắt đầu làm task\" để mà deny. Hook fail open ở mọi nhánh: không node / không git / stdin rác đều exit 0 im lặng.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/hooks/prompt-submit"
+          }
+        ]
+      }
+    ]
+  }
+}

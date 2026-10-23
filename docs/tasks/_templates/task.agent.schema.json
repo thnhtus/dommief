@@ -1,0 +1,424 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec-harness/kernel/task.agent.schema.json",
+  "title": "task.agent.json — spec-harness task state",
+  "description": "Machine-readable state for one tracker task. Normative field list: docs/agents/SharedRules.md §6.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "taskId",
+    "taskName",
+    "trackerUrl",
+    "repoName",
+    "sprintNumber",
+    "developer",
+    "branchType",
+    "layer",
+    "taskComplexity",
+    "currentStage",
+    "status",
+    "branch",
+    "docsPath",
+    "agents",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "taskId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tracker task id, e.g. 86d2x6jc0"
+    },
+    "taskName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trackerUrl": {
+      "type": "string",
+      "$comment": "Tracker task URL. The shape is injected from harness.config.json → tracker.urlPattern, so any tracker works. `clickupUrl` is accepted as a deprecated alias for one version: the validator renames it in memory and warns."
+    },
+    "repoName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sprintNumber": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "developer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "branchType": {
+      "type": "string",
+      "enum": [
+        "feature",
+        "hotfix",
+        "bugfix"
+      ]
+    },
+    "layer": {
+      "type": "string",
+      "$comment": "Allowed values injected from harness.config.json → layers. A FE-only project declares [\"frontend\"]; a monorepo or BE project declares its own."
+    },
+    "taskComplexity": {
+      "type": "string",
+      "enum": [
+        "trivial",
+        "normal",
+        "high"
+      ]
+    },
+    "currentStage": {
+      "type": "string",
+      "enum": [
+        "bootstrap",
+        "fsd_write",
+        "fsd_review",
+        "technical_plan",
+        "implementation",
+        "adversarial_review",
+        "reviewing"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "in_progress",
+        "blocked",
+        "needs_clarification",
+        "reviewing",
+        "mr_created",
+        "done",
+        "split"
+      ]
+    },
+    "splitInto": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Task IDs this task was split into. Required when status=split: a task that exhausted the retry budget is a task that was too big, and \"split\" without children is just a rename for giving up."
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Conventional branch name per ProjectRules §3 — same slug as docsPath. Deliberately not pattern-enforced: projects change their branch convention over time and older tasks must stay valid."
+    },
+    "branchActual": {
+      "type": "string",
+      "description": "Optional. Real working branch when it differs from the conventional `branch` (user-managed branch exception, SharedRules §3)."
+    },
+    "parentTaskId": {
+      "type": "string",
+      "description": "Optional. Parent ClickUp task id, empty string when none."
+    },
+    "subTaskKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional. Distinct slug disambiguating multiple folders that share one ClickUp taskId (separate sub-bugs of the same ClickUp item). Required to be distinct per folder when a taskId is reused."
+    },
+    "complexity": {
+      "type": "object",
+      "description": "Complexity vector (Agents.md §5.1). taskComplexity is DERIVED from it by formula §5.1.1 — the validator recomputes and rejects a mismatch.",
+      "required": [
+        "vector"
+      ],
+      "properties": {
+        "vector": {
+          "type": "object",
+          "required": [
+            "scope",
+            "uncertainty",
+            "dependency",
+            "dataImpact",
+            "integration",
+            "testing",
+            "blastRadius",
+            "reversibility"
+          ],
+          "properties": {
+            "scope": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "uncertainty": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "dependency": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "dataImpact": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "integration": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "testing": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "blastRadius": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            },
+            "reversibility": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            }
+          }
+        },
+        "effort": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12
+        },
+        "assessedAt": {
+          "type": "string",
+          "enum": ["bootstrap", "technical_plan"],
+          "$comment": "Which stage last scored the vector. Still 'bootstrap' past technical_plan means the §5.1.3 re-check left no trace."
+        },
+        "counts": {
+          "type": "object",
+          "description": "Measured numbers the vector was scored from. The validator cross-checks them against the vector, so they are evidence, not decoration (Agents.md 5.1).",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "minLength": 1,
+              "$comment": "The symbol filesTouched was grepped for. Picking the symbol picks the scope, so the choice is on the record."
+            },
+            "filesTouched": {
+              "type": "integer",
+              "minimum": 0,
+              "$comment": "rg -l '<symbol>' <src> | wc -l. 1 => scope 0, >5 => scope 2."
+            },
+            "existingTests": {
+              "type": "integer",
+              "minimum": 0,
+              "$comment": "Test files already covering the code. 0 => testing >= 1."
+            }
+          }
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Things that cannot be built without an answer. Empty => uncertainty 0; non-empty => uncertainty >= 1. Writing the list is the check."
+        },
+        "splitEvaluated": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required at effort >= 9, or scope 2 + uncertainty 2: the child task IDs, or why this cannot ship in parts (Agents.md 5.1.4)."
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "docsPath": {
+      "type": "string",
+      "$comment": "pattern injected from harness.config.json → tasksDir + groupPrefix"
+    },
+    "agents": {
+      "type": "object",
+      "description": "Per-role status. Six canonical FE roles required; extra roles allowed.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "in_progress",
+              "done",
+              "not_applicable",
+              "blocked",
+              "needs_clarification",
+              "skipped"
+            ]
+          }
+        }
+      },
+      "required": [
+        "orchestrator",
+        "fsd-writer",
+        "fsd-reviewer",
+        "technical-planner",
+        "implementer",
+        "fixer",
+        "adversary"
+      ]
+    },
+    "outcome": {
+      "type": "object",
+      "description": "What actually happened after the task shipped. This is the only ground truth the harness gets: everything else is an estimate made before the work. Filled when the task closes (status=done), by whoever closes it.",
+      "properties": {
+        "escapedBugs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Bugs found after this task left the harness (QC, staging, production). >0 means the gates passed something they should have caught."
+        },
+        "reworkAfterReview": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Times the task came back for code changes after status=reviewing (review comments, MR rejections)."
+        },
+        "closedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "description": "One line: what the estimate missed, in plain words."
+        }
+      }
+    },
+    "attempts": {
+      "type": "object",
+      "description": "How many times each stage actually ran. Optimal is 1; >1 means a gate sent it back. This is the harness's Step Efficiency signal — rework is measured, not estimated. A sliced implementation (#67) counts the worst slice; each slice's attempts are its telemetry entries.",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}",
+      "$comment": "Decides whether §5.1/§5.6 are errors or warnings (acTrace.since). The validator also checks it against the folder's first commit."
+    },
+    "updatedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "telemetry": {
+      "type": "array",
+      "description": "One entry per stage dispatch: which tier ran, how long, and how many input tokens it cost. No vendor usage object — just an integer the CLI already reports. Without it the harness cannot see its own cost: the per-stage rule floor is multiplied by every stage of every task, and a bloated kernel shows up only on the monthly bill, never attributable to a cause. Written only by `validate-tasks.mjs --advance`: every startedAt/endedAt must have its line in {tasksDir}/_stamp.log (error for createdAt ≥ config.stampSince).",
+      "items": {
+        "type": "object",
+        "required": [
+          "stage",
+          "tier"
+        ],
+        "properties": {
+          "stage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "slice": {
+            "type": "string",
+            "pattern": "^S\\d+$",
+            "description": "implementation only, when 03 declares a Slice column (#67): which slice this dispatch built. Its attempt number counts only this slice's entries."
+          },
+          "scopeSnap": {
+            "type": "object",
+            "required": ["head", "dirty"],
+            "description": "#71, written by --advance with --slice: HEAD and a hash per already-dirty path when the slice was dispatched. The --advance that closes this entry fails (exit 1) on any path changed since that is not in this slice's 03 rows."
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "cheap",
+              "mid",
+              "strong",
+              "session-default"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "description": "What the CLI actually called it — the name --tier printed from config.models.<cli>. Empty when the CLI cannot route per-subagent."
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Which run of this stage this entry is. Drives the model cascade (Agents.md §5.3.1): attempt n runs one tier above attempt n-1, capped at strong. Omitting it on a stage that ran twice makes the cascade rule uncheckable."
+          },
+          "startedAt": {
+            "type": "string"
+          },
+          "endedAt": {
+            "type": "string"
+          },
+          "inputTokens": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Input tokens this dispatch consumed, as reported by the CLI. Omit when the CLI does not report it."
+          }
+        }
+      }
+    },
+    "trackerWriteBack": {
+      "type": "object",
+      "description": "What the coordinator actually did on the tracker at step 7. Written only after the tracker MCP call returned; its absence while config.tracker.writeBack is on means the board was never updated.",
+      "required": [
+        "at",
+        "action"
+      ],
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "comment",
+            "status"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "description": "The status the ticket was moved to, when action=status."
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "Branch type must match implementer: feature/hotfix => implementer active; bugfix => fixer active.",
+      "if": {
+        "properties": {
+          "branchType": {
+            "const": "bugfix"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "agents": {
+            "properties": {
+              "implementer": {
+                "properties": {
+                  "status": {
+                    "const": "not_applicable"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
