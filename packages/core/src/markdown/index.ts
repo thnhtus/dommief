@@ -16,7 +16,7 @@ import { toModule } from './to-module.js';
 import { DommiefError } from './errors.js';
 
 export interface TocItem { id: string; depth: number; title: string; }
-export interface TextFragment { type: 'content' | 'title'; value: string; }
+export interface TextFragment { type?: 'content' | 'title'; value: string; paraId?: number; tocIndex?: number; }
 export interface PageMeta {
   frontmatter: Record<string, unknown>;
   toc: TocItem[];
