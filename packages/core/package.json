@@ -17,6 +17,7 @@
       "default": "./dist/theme-api.js"
     },
     "./client": {
+      "types": "./src/client/index.tsx",
       "default": "./src/client/index.tsx"
     }
   },

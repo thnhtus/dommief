@@ -1,6 +1,7 @@
 node_modules
 dist
 .dommief
+.vitest
 *.log
 docs/tasks/_stamp.log
 docs/tasks/_triage.log

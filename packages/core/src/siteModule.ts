@@ -1,5 +1,4 @@
-import { winPath } from './utils/path.js';
-import type { Route, SiteData } from './types.js';
+import type { Route, SiteData, TocEntry } from './types.js';
 import { buildNav, buildSidebar, type FrontmatterMap } from './siteFeatures.js';
 
 // Đặc tả: docs/spec/CONTRACTS.md §4–§6, backlog DM-209.
@@ -14,16 +13,16 @@ export interface SiteModuleConfig {
   frontmatter?: FrontmatterMap | undefined;
 }
 
+/** `meta[id]` cho mỗi route: do caller tính sẵn (sitePlugin dùng `extractPageSummary`, #12 — một nguồn sự thật, không đọc `.md?meta` lần nữa qua import). */
+export type SiteModuleMeta = Record<string, { frontmatter: Record<string, unknown>; toc: TocEntry[] }>;
+
 /**
- * Sinh code cho `virtual:dommief/site`. `meta[id]` lấy từ import tường minh
- * `"/abs/file.md?meta"` (chỉ frontmatter) — không `import.meta.glob` (không nhận glob
- * ngoài root), không import `virtual:dommief/routes` (hai module invalidate độc lập).
- * `nav`/`sidebar` rỗng ở Phase 2 (DM-701/702 điền).
+ * Sinh code cho `virtual:dommief/site`. Mọi thứ nhúng thẳng vào JSON (không import `.md?meta`
+ * cho từng route — mở một trang trong dev từng kéo theo transform MỌI file md, #12), và không
+ * import `virtual:dommief/routes` (hai module invalidate độc lập).
  */
-export function createSiteModule({ routes, config }: { routes: Route[]; config: SiteModuleConfig }): string {
-  const imports = routes.map((r, i) => `import meta${i} from ${JSON.stringify(winPath(r.file) + '?meta')};`);
+export function createSiteModule({ routes, config, meta }: { routes: Route[]; config: SiteModuleConfig; meta: SiteModuleMeta }): string {
   const routesById = Object.fromEntries(routes.map((r) => [r.id, r]));
-  const meta = routes.map((r, i) => `    ${JSON.stringify(r.id)}: { frontmatter: meta${i}.frontmatter ?? {}, toc: meta${i}.toc ?? [] },`);
   const frontmatter = config.frontmatter ?? {};
   const nav = buildNav(routes, frontmatter, config.locales);
   const sidebar = buildSidebar(routes, frontmatter, config.locales);
@@ -36,12 +35,9 @@ export function createSiteModule({ routes, config }: { routes: Route[]; config: 
     routes: routesById,
   };
   const json = JSON.stringify(head);
-  return `${imports.join('\n')}
-export default {
+  return `export default {
   ...${json},
-  meta: {
-${meta.join('\n')}
-  },
+  meta: ${JSON.stringify(meta)},
   nav: ${JSON.stringify(nav)},
   sidebar: ${JSON.stringify(sidebar)},
 };

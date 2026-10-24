@@ -9,6 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # package.json có "packageManager: pnpm" nên setup-node tự dò pnpm;
+      # thiếu bước này job fail ngay với "Unable to locate
+      # executable file: pnpm" (audit #4).
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
       - uses: actions/setup-node@v5
         with: { node-version: '24' }
       # --preflight trước: config tự mâu thuẫn (hoặc repos[].path sai) thì mọi

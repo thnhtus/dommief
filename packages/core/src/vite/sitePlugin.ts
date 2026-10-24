@@ -1,8 +1,8 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { createSiteModule } from '../siteModule.js';
-import { parseFrontmatterYaml } from '../markdown/remark-meta.js';
+import { createSiteModule, type SiteModuleMeta } from '../siteModule.js';
+import { extractPageSummary } from '../markdown/remark-meta.js';
 import type { DommiefState } from './state.js';
 
 // Đặc tả: backlog DM-209. Plugin riêng `dommief:site` giữ `virtual:dommief/site` nhẹ.
@@ -47,11 +47,15 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
       if (cache) return { code: cache, map: null };
       const config = state.config();
       const t = state.getTable();
-      const frontmatter = Object.fromEntries(t.routes.map((r) => {
+      // Một lần đọc file cho cả frontmatter lẫn toc (#12): không còn import `.md?meta` riêng
+      // cho từng route, nên cả nav/sidebar lẫn `site.meta` đều ra từ cùng một parser.
+      const summaries = new Map(t.routes.map((r) => {
         let raw = '';
         try { raw = readFileSync(r.file, 'utf8'); } catch { raw = ''; }
-        return [r.id, parseFrontmatterYaml(raw, { file: r.file, onWarn: (m) => this.warn(m) })];
+        return [r.id, extractPageSummary(raw, r.file, (m) => this.warn(m))] as const;
       }));
+      const frontmatter = Object.fromEntries([...summaries].map(([id, s]) => [id, s.frontmatter]));
+      const meta: SiteModuleMeta = Object.fromEntries([...summaries].map(([id, s]) => [id, s]));
       const code = createSiteModule({
         routes: t.routes,
         config: {
@@ -62,6 +66,7 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
           themeConfig: config.themeConfig,
           frontmatter,
         },
+        meta,
       });
       // ghi nhớ hash frontmatter hiện tại cho từng file
       frontmatterHashes = new Map(t.routes.map((r) => [r.file, frontmatterHash(r.file)]));
