@@ -1,5 +1,5 @@
 // Entry dev/preview — `createRoot`, CHƯA hydrate (DM-407 đổi sang hydrateRoot).
-import { createRoot } from 'react-dom/client';
+import { hydrateRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { AppRoutes } from './AppRoutes.js';
 
@@ -20,7 +20,8 @@ if (typeof window !== 'undefined') {
   normalizeTrailingSlash();
   const el = document.getElementById('root');
   if (el) {
-    createRoot(el).render(
+    hydrateRoot(
+      el,
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>,
