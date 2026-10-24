@@ -13,6 +13,7 @@ import { rehypeImg } from './rehype-img.js';
 import { rehypeDesc, rehypeStrip } from './rehype-desc.js';
 import { rehypeText } from './rehype-text.js';
 import { rehypeDemo } from './rehype-demo.js';
+import { rehypeApi } from './rehype-api.js';
 import { toModule } from './to-module.js';
 import { DommiefError } from './errors.js';
 import { createPluginHost, type PluginHookHost } from '../plugins.js';
@@ -55,7 +56,8 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
       .use(rehypeDesc)
       .use(rehypeStrip)
       .use(rehypeText)
-      .use(rehypeDemo);
+      .use(rehypeDemo)
+      .use(rehypeApi);
   } catch (e) {
     throw new DommiefError('failed to build pipeline', { file });
   }
