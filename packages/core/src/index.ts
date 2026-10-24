@@ -2,6 +2,8 @@ export { defineConfig, loadConfig, loadConfigFile, resolveConfig } from './confi
 export type { ResolvedConfig, UserConfig } from './config.js';
 export { buildRouteTable } from './routes.js';
 export type { Route, RouteTable, SiteData, ResolvedLocale } from './types.js';
+export { buildNav, buildSidebar, paginate, parseFrontmatter } from './siteFeatures.js';
+export type { FrontmatterMap, PaginationResult } from './siteFeatures.js';
 export { transformMarkdown } from './markdown/index.js';
 export { DommiefError, formatError } from './markdown/errors.js';
 export type { PageMeta, TocItem, TextFragment } from './markdown/index.js';

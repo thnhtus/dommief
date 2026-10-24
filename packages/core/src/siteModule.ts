@@ -1,5 +1,6 @@
 import { winPath } from './utils/path.js';
 import type { Route, SiteData } from './types.js';
+import { buildNav, buildSidebar, type FrontmatterMap } from './siteFeatures.js';
 
 // Đặc tả: docs/spec/CONTRACTS.md §4–§6, backlog DM-209.
 
@@ -10,6 +11,7 @@ export interface SiteModuleConfig {
   description?: string | undefined;
   locales: SiteData['locales'];
   themeConfig?: Record<string, unknown> | undefined;
+  frontmatter?: FrontmatterMap | undefined;
 }
 
 /**
@@ -22,6 +24,9 @@ export function createSiteModule({ routes, config }: { routes: Route[]; config: 
   const imports = routes.map((r, i) => `import meta${i} from ${JSON.stringify(winPath(r.file) + '?meta')};`);
   const routesById = Object.fromEntries(routes.map((r) => [r.id, r]));
   const meta = routes.map((r, i) => `    ${JSON.stringify(r.id)}: { frontmatter: meta${i}.frontmatter ?? {} },`);
+  const frontmatter = config.frontmatter ?? {};
+  const nav = buildNav(routes, frontmatter, config.locales);
+  const sidebar = buildSidebar(routes, frontmatter, config.locales);
   const head = {
     base: config.base,
     title: config.title,
@@ -37,8 +42,8 @@ export default {
   meta: {
 ${meta.join('\n')}
   },
-  nav: {},
-  sidebar: {},
+  nav: ${JSON.stringify(nav)},
+  sidebar: ${JSON.stringify(sidebar)},
 };
 `;
 }
