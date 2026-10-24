@@ -1,0 +1,41 @@
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { beforeAll, describe, expect, it } from 'vitest';
+
+// Chạy `dommief build` thật trên fixture: bắt các lỗi mà test hàm lẻ không thấy
+// (entry không resolve, HTML trần không có script, trang crash vì thiếu import, base sai).
+const repo = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
+const site = path.join(repo, 'tests/fixtures/site');
+const dist = path.join(site, 'dist');
+const read = (rel: string) => fs.readFileSync(path.join(dist, rel), 'utf8');
+
+describe('dommief build (fixture site, base /sub/)', () => {
+  beforeAll(() => {
+    execFileSync('pnpm', ['-C', 'packages/core', 'build'], { cwd: repo, stdio: 'pipe' });
+    fs.rmSync(dist, { recursive: true, force: true });
+    execFileSync('node', [path.join(repo, 'packages/core/dist/cli.js'), 'build'], { cwd: site, stdio: 'pipe' });
+  }, 180_000);
+
+  it('ghi trang lồng nhau theo kebab-case + 404.html', () => {
+    expect(fs.existsSync(path.join(dist, 'index.html'))).toBe(true);
+    expect(fs.existsSync(path.join(dist, 'guide/get-started/index.html'))).toBe(true);
+    expect(fs.existsSync(path.join(dist, '404.html'))).toBe(true);
+  });
+
+  it('mỗi trang có script module (base /sub/) và nội dung prerender', () => {
+    for (const [file, marker] of [['index.html', 'Welcome-marker'], ['guide/get-started/index.html', 'Guide-marker'], ['404.html', '404']] as const) {
+      const html = read(file);
+      expect(html, file).toMatch(/<script type="module"[^>]*src="\/sub\/assets\//);
+      expect(html, file).toContain(marker);
+      expect(html, file).toContain('<div id="root">');
+    }
+  });
+
+  it('code block tsx thường là code; ```tsx demo thành DumiDemo, không crash', () => {
+    const html = read('guide/get-started/index.html');
+    expect(html).toContain('plain-code-marker');
+    expect(html).toContain('dommief-demo');
+  });
+});

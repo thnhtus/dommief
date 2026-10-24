@@ -1,25 +1,13 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { buildRouteTable } from '../routes.js';
 import { createSiteModule } from '../siteModule.js';
 import { parseFrontmatter } from '../siteFeatures.js';
-import type { RouteConfig } from '../types.js';
+import type { DommiefState } from './state.js';
 
 // Đặc tả: backlog DM-209. Plugin riêng `dommief:site` giữ `virtual:dommief/site` nhẹ.
 // Invalidate chỉ khi frontmatter của md đổi, md thêm/xoá/đổi tên, hoặc config đổi.
 // Sửa thân bài KHÔNG invalidate.
-
-export interface SitePluginOptions {
-  cwd: string;
-  config: RouteConfig & {
-    title: string;
-    base: string;
-    description?: string | undefined;
-    locales: any;
-    themeConfig: Record<string, unknown>;
-  };
-}
 
 function frontmatterHash(file: string): string {
   let raw = '';
@@ -29,21 +17,17 @@ function frontmatterHash(file: string): string {
   return createHash('sha256').update(block).digest('hex').slice(0, 16);
 }
 
-export function dommiefSitePlugin(opts: SitePluginOptions): Plugin {
+export function dommiefSitePlugin(state: DommiefState): Plugin {
   const virtualId = 'virtual:dommief/site';
   const resolvedId = '\0' + virtualId;
 
-  const { cwd, config } = opts;
-  let table: ReturnType<typeof buildRouteTable> | null = null;
   let frontmatterHashes = new Map<string, string>();
   let cache: string | null = null;
   let server: ViteDevServer | null = null;
 
-  const getTable = () => (table ??= buildRouteTable({ cwd, config }));
-
   const invalidate = () => {
     cache = null;
-    table = null;
+    state.resetTable();
     const mod = server?.moduleGraph.getModuleById(resolvedId);
     if (mod) server!.moduleGraph.invalidateModule(mod);
   };
@@ -56,9 +40,11 @@ export function dommiefSitePlugin(opts: SitePluginOptions): Plugin {
       if (id === virtualId) return resolvedId;
       return null;
     },
-    load() {
+    load(id) {
+      if (id !== resolvedId) return null;
       if (cache) return { code: cache, map: null };
-      const t = getTable();
+      const config = state.config();
+      const t = state.getTable();
       const frontmatter = Object.fromEntries(t.routes.map((r) => {
         let raw = '';
         try { raw = readFileSync(r.file, 'utf8'); } catch { raw = ''; }

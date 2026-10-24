@@ -1,27 +1,41 @@
 import { cac } from 'cac';
-import { createServer } from 'vite';
-import { build } from 'vite';
+import { build, createServer, preview } from 'vite';
 import path from 'node:path';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { dommiefPlugin } from './vite/plugin.js';
 import { createLogger } from './log.js';
 import { loadConfig } from './config.js';
 import { createPluginHost } from './plugins.js';
+import { resolveClientFile } from './paths.js';
+import { formatError, DommiefError } from './markdown/errors.js';
+import type { Route } from './types.js';
 
-const ENTRY_SERVER = fileURLToPath(new URL('./client/entry-server.tsx', import.meta.url));
+const ROOT_PLACEHOLDER = /<div id="root"><\/div>/;
+
+/** Chạy `fn` cho từng phần tử, tối đa `limit` việc cùng lúc. */
+async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  const worker = async () => {
+    while (i < items.length) await fn(items[i++]!);
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+}
 
 const cli = cac('dommief');
 
 cli.command('dev', 'start dev server')
   .option('--verbose', 'verbose logging')
-  .action(async (opts: { verbose?: boolean }) => {
+  .option('--base <base>', 'public base path (vd /docs/)')
+  .action(async (opts: { verbose?: boolean; base?: string }) => {
     const log = createLogger(!!opts.verbose);
     const root = process.cwd();
     log.debug('root=' + root);
+    const config = await loadConfig(root, { base: opts.base });
+    const host = createPluginHost(config.plugins ?? []);
     const server = await createServer({
       root,
-      plugins: [dommiefPlugin({ root })],
+      plugins: [dommiefPlugin({ root, config, host })],
       server: { port: 5173 },
     });
     await server.listen();
@@ -30,63 +44,66 @@ cli.command('dev', 'start dev server')
 
 cli.command('build', 'build site')
   .option('--verbose', 'verbose logging')
-  .action(async (opts: { verbose?: boolean }) => {
+  .option('--base <base>', 'public base path (vd /docs/)')
+  .option('--out-dir <dir>', 'output directory')
+  .action(async (opts: { verbose?: boolean; base?: string; outDir?: string }) => {
     const log = createLogger(!!opts.verbose);
     const root = process.cwd();
     log.debug('root=' + root);
-    const config = await loadConfig(root);
-    const pluginHost = createPluginHost(config.plugins ?? []);
-    // (a) client build → dist/
-    await build({ root, plugins: [dommiefPlugin({ root })], base: config.base, build: { outDir: 'dist' } });
+    const config = await loadConfig(root, { base: opts.base, outDir: opts.outDir });
+    const host = createPluginHost(config.plugins ?? []);
+    const plugins = () => [dommiefPlugin({ root, config, host })];
+    const distDir = path.resolve(root, config.outDir);
+    // (a) client build → outDir/
+    await build({ root, plugins: plugins(), base: config.base, build: { outDir: distDir, emptyOutDir: true } });
     // (b) SSR build → .dommief/server.mjs
-    const outDir = path.join(root, '.dommief');
-    fs.mkdirSync(outDir, { recursive: true });
+    const ssrDir = path.join(root, '.dommief');
+    fs.mkdirSync(ssrDir, { recursive: true });
     await build({
       root,
-      plugins: [dommiefPlugin({ root })],
+      plugins: plugins(),
       base: config.base,
-      build: { outDir, ssr: ENTRY_SERVER, rollupOptions: { output: { entryFileNames: 'server.mjs', format: 'esm' } } },
+      build: {
+        outDir: ssrDir,
+        emptyOutDir: true,
+        ssr: resolveClientFile('entry-server.tsx'),
+        rollupOptions: { output: { entryFileNames: 'server.mjs', format: 'esm' } },
+      },
     });
-    // (c) SSG
-    const serverMod: any = await import(path.join(outDir, 'server.mjs'));
-    const routes = serverMod.routes ?? serverMod.default?.routes ?? [];
-    const render = serverMod.render ?? serverMod.default?.render;
-    // concurrency mapLimit
-    const concurrency = (config as any).ssg?.concurrency ?? 4;
-    const queue = [...routes];
-    const runOne = async (r: any) => {
-      const html = await render(r.path);
-      const targetDir = r.path === '/' ? path.join(root, 'dist') : path.join(root, 'dist', r.path.replace(/^\//, ''));
+    // (c) SSG: chèn markup vào index.html của Vite (script + css) thay vì ghi markup trần.
+    // Phải đọc template TRƯỚC vòng lặp: route "/" ghi đè đúng file này.
+    const templatePath = path.join(distDir, 'index.html');
+    const template = fs.readFileSync(templatePath, 'utf8');
+    if (!ROOT_PLACEHOLDER.test(template)) {
+      throw new DommiefError('index.html không có <div id="root"></div> để chèn nội dung prerender', { file: templatePath, code: 'ssg_no_root' });
+    }
+    const serverMod: any = await import(pathToFileURL(path.join(ssrDir, 'server.mjs')).href);
+    const routes: Route[] = serverMod.routes ?? serverMod.default?.routes ?? [];
+    const render: (url: string) => Promise<string> = serverMod.render ?? serverMod.default?.render;
+    const wrap = (html: string) => template.replace(ROOT_PLACEHOLDER, () => `<div id="root">${html}</div>`);
+    await mapLimit(routes, config.ssg.concurrency, async (r) => {
+      const html = wrap(await render(r.path));
+      const targetDir = r.path === '/' ? distDir : path.join(distDir, r.path.replace(/^\//, ''));
       fs.mkdirSync(targetDir, { recursive: true });
       fs.writeFileSync(path.join(targetDir, 'index.html'), html);
-    };
-    // simple pool
-    const workers: Promise<void>[] = [];
-    let i = 0;
-    const run = async () => {
-      while (i < queue.length) {
-        const idx = i++;
-        await runOne(queue[idx]);
-      }
-    };
-    for (let w = 0; w < Math.min(concurrency, queue.length); w++) workers.push(run());
-    await Promise.all(workers);
-    // 404.html
+    });
+    // 404.html: route "*" của cùng cây <Routes>
     try {
-      const html404 = await render('/404');
-      fs.writeFileSync(path.join(root, 'dist', '404.html'), html404);
-    } catch {}
-    await pluginHost.runBuildEnd({ config, outDir: path.join(root, 'dist'), routes });
-    console.log('build done');
+      fs.writeFileSync(path.join(distDir, '404.html'), wrap(await render('/404')));
+    } catch (e) {
+      log.warn('không render được 404.html: ' + formatError(e));
+    }
+    await host.runBuildEnd({ config, outDir: distDir, routes });
+    log.info('build done');
   });
 
 cli.command('preview', 'preview built site')
-  .option('--verbose', 'verbose logging')
-  .action(async (opts: { verbose?: boolean }) => {
-    const log = createLogger(!!opts.verbose);
+  .option('--base <base>', 'public base path (vd /docs/)')
+  .option('--out-dir <dir>', 'output directory')
+  .action(async (opts: { base?: string; outDir?: string }) => {
     const root = process.cwd();
-    const { preview } = await import('vite');
-    const server = await preview({ root, build: { outDir: 'dist' } });
+    const config = await loadConfig(root, { base: opts.base, outDir: opts.outDir });
+    const server = await preview({ root, base: config.base, build: { outDir: config.outDir } });
     server.printUrls();
   });
 

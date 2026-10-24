@@ -4,7 +4,7 @@ title: Home
 
 # Hello Dommief
 
-This is a test.
+This is a test. Go to [get started](./guide/getStarted.md).
 
 | a | b |
 |---|---|

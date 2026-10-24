@@ -3,7 +3,7 @@ export type { ResolvedConfig, UserConfig } from './config.js';
 export { createPluginHost, registerPlugin, definePlugin, PluginHookHost, Hook } from './plugins.js';
 export type { DommiefPlugin, DommiefPluginObject, PluginSetup, BuildEndContext, PluginHookHost as PluginHooks } from './plugins.js';
 export { buildRouteTable } from './routes.js';
-export type { Route, RouteTable, SiteData, ResolvedLocale } from './types.js';
+export type { Route, RouteTable, RouteConfig, SiteData, ResolvedLocale } from './types.js';
 export { buildNav, buildSidebar, paginate, parseFrontmatter } from './siteFeatures.js';
 export type { FrontmatterMap, PaginationResult } from './siteFeatures.js';
 export { transformMarkdown } from './markdown/index.js';

@@ -12,7 +12,7 @@ import { rehypeLink } from './rehype-link.js';
 import { rehypeImg } from './rehype-img.js';
 import { rehypeDesc, rehypeStrip } from './rehype-desc.js';
 import { rehypeText } from './rehype-text.js';
-import { rehypeDemo } from './rehype-demo.js';
+import { rehypeDemo, remarkDemoMeta } from './rehype-demo.js';
 import { rehypeApi } from './rehype-api.js';
 import { toModule } from './to-module.js';
 import { DommiefError } from './errors.js';
@@ -42,7 +42,8 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
       .use(remarkParse)
       .use(remarkFrontmatter, ['yaml'])
       .use(remarkGfm)
-      .use(remarkMeta, { filename: file });
+      .use(remarkMeta, { filename: file })
+      .use(remarkDemoMeta);
     for (const p of remarkPlugins) processor = processor.use(p);
     processor = processor
       .use(remarkRehype, { allowDangerousHtml: true })

@@ -29,6 +29,7 @@ export const ConfigSchema = z
     forceKebabCase: z.boolean().default(true),
     locales: z.array(LocaleInputSchema).default([{ id: 'en-US', name: 'English' }]),
     themeConfig: z.record(z.string(), z.unknown()).default({}),
+    ssg: z.object({ concurrency: z.number().int().positive().default(4) }).default({ concurrency: 4 }),
     plugins: z.array(z.any()).default([]),
   })
   .strict();
@@ -44,6 +45,7 @@ export interface ResolvedConfig extends RouteConfig {
   base: string;
   outDir: string;
   themeConfig: Record<string, unknown>;
+  ssg: { concurrency: number };
   plugins?: DommiefPlugin[];
 }
 
@@ -135,16 +137,17 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     forceKebabCase: c.forceKebabCase,
     locales,
     themeConfig: c.themeConfig,
+    ssg: c.ssg,
     plugins: (c.plugins ?? []) as DommiefPlugin[],
   };
   if (c.description !== undefined) config.description = c.description;
   return config;
 }
 
-/** Kept for vite/plugin.ts: load file at `root` + resolve with process env. */
-export async function loadConfig(root: string): Promise<ResolvedConfig> {
+/** Load file at `root` + resolve with process env (and optional CLI flags). */
+export async function loadConfig(root: string, cli?: ResolveOptions['cli']): Promise<ResolvedConfig> {
   const file = await loadConfigFile({ cwd: root });
-  return resolveConfig(file?.config ?? {}, { cwd: root, env: process.env, configFile: file?.path });
+  return resolveConfig(file?.config ?? {}, { cwd: root, env: process.env, configFile: file?.path, ...(cli ? { cli } : {}) });
 }
 
 function resolveLocales(
