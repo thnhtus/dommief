@@ -71,7 +71,9 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         for (const w of warnings) this.warn(w);
         for (const apiFile of apiSrcFiles) this.addWatchFile(apiFile); // <API src> đọc file khác .md (#17)
         if (isMeta) {
-          // ?meta trả frontmatter + toc (nhỏ; theme cần cho mục lục) — không texts (nặng, chỉ để tìm kiếm).
+          // ?meta: import công khai cho code người dùng (vd `import m from './x.md?meta'`).
+          // KHÔNG còn ai trong core dùng đường này để dựng site module — xem `extractPageSummary` (#12).
+          // Trả frontmatter + toc (nhỏ) — không texts (nặng, chỉ để tìm kiếm).
           return { code: `export default ${JSON.stringify({ frontmatter: meta.frontmatter, toc: meta.toc })};`, map: null, moduleType: 'js' };
         }
         return { code: out, map: null, moduleType: 'jsx' };
