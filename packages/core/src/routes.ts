@@ -191,13 +191,12 @@ function duplicateCause(a: Normalized, b: Normalized): string {
 
 /** sha256 (8 ký tự) của các key ảnh hưởng route. Khác `transformHash` của cache md (DM-406). */
 export function routeConfigHash(config: RouteConfig): string {
-  const { srcDir, docDirs, locales, forceKebabCase, cleanUrls } = config;
+  const { srcDir, docDirs, locales, forceKebabCase } = config;
   const json = JSON.stringify({
     srcDir,
     docDirs: docDirs.map((d) => d.dir),
     locales: locales.map(({ id, name, base, suffix }) => ({ id, name, base, suffix })),
     forceKebabCase,
-    cleanUrls,
   });
   return createHash('sha256').update(json).digest('hex').slice(0, 8);
 }

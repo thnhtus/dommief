@@ -14,7 +14,7 @@ const fail = (fn: () => unknown): DommiefError => {
 describe('resolveConfig', () => {
   it('(a) defaults without a config file', () => {
     const c = resolve({});
-    expect(c).toMatchObject({ base: '/', srcDir: 'docs', docDirs: [{ dir: 'docs' }], outDir: 'dist', cleanUrls: true, forceKebabCase: true, root: cwd });
+    expect(c).toMatchObject({ base: '/', srcDir: 'docs', docDirs: [{ dir: 'docs' }], outDir: 'dist', forceKebabCase: true, root: cwd });
   });
 
   it('(b) base "sub" → config_invalid naming base and value', () => {

@@ -29,7 +29,7 @@ const suffixMode: ResolvedLocale[] = [
   { id: 'vi-VN', name: 'Tiếng Việt', base: '/', suffix: '.vi' },
 ];
 const cfg = (over: Partial<RouteConfig> = {}): RouteConfig => ({
-  srcDir: 'docs', docDirs: [{ dir: 'docs' }], locales: base, forceKebabCase: true, cleanUrls: true, ...over,
+  srcDir: 'docs', docDirs: [{ dir: 'docs' }], locales: base, forceKebabCase: true, ...over,
 });
 const one = (file: string, over: Partial<RouteConfig> = {}) => {
   const cwd = tree([`docs/${file}`]);

@@ -36,7 +36,7 @@ export interface TransformMarkdownOptions {
   /** `config.base` để gắn tiền tố cho link nội bộ. */
   base?: string;
 }
-export async function transformMarkdown(source: string, file: string, opts: TransformMarkdownOptions = {}): Promise<{ code: string; meta: PageMeta; warnings: string[] }> {
+export async function transformMarkdown(source: string, file: string, opts: TransformMarkdownOptions = {}): Promise<{ code: string; meta: PageMeta; warnings: string[]; apiSrcFiles: string[] }> {
   const host = opts.hooks ?? (opts.plugins ? createPluginHost(opts.plugins) : undefined);
   const remarkPlugins = [...(opts.remarkPlugins ?? []), ...(host ? host.collectRemarkPlugins() : [])];
   const rehypePlugins = [...(opts.rehypePlugins ?? []), ...(host ? host.collectRehypePlugins() : [])];
@@ -74,11 +74,12 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
   } catch (e) {
     throw new DommiefError('markdown transform failed: ' + (e as Error).message, { file });
   }
+  const apiSrcFiles = (vfile.data?.apiSrcFiles ?? []) as string[];
   const meta: PageMeta = {
     frontmatter: (vfile.data?.frontmatter ?? {}) as Record<string, unknown>,
     toc: (vfile.data?.toc ?? []) as TocItem[],
     texts: (vfile.data?.texts ?? []) as TextFragment[],
   };
   const code = toModule(hast, meta, (vfile.data?.images ?? []) as { name: string; specifier: string }[]);
-  return { code, meta, warnings: (vfile.data?.warnings ?? []) as string[] };
+  return { code, meta, warnings: (vfile.data?.warnings ?? []) as string[], apiSrcFiles };
 }

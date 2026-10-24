@@ -20,8 +20,8 @@ export interface ApiEntry {
   hash: string;
 }
 
-// Cache by file hash.
-const apiCache = new Map<string, ApiEntry[]>();
+// Cache theo file tuyệt đối (một entry mỗi file, thay bằng bản mới khi hash đổi — map không phình mãi theo #17).
+const apiCache = new Map<string, { hash: string; entries: ApiEntry[] }>();
 
 export function clearApiCache(): void {
   apiCache.clear();
@@ -45,8 +45,8 @@ export function buildApiTable(src: string, filePath: string = ''): ApiEntry[] | 
     return null;
   }
   const hash = hashFileContent(content);
-  const cacheKey = abs + '::' + hash;
-  if (apiCache.has(cacheKey)) return apiCache.get(cacheKey)!;
+  const cached = apiCache.get(abs);
+  if (cached && cached.hash === hash) return cached.entries;
 
   let docs: any[] = [];
   try {
@@ -70,18 +70,16 @@ export function buildApiTable(src: string, filePath: string = ''): ApiEntry[] | 
     })),
   }));
 
-  apiCache.set(cacheKey, entries);
+  apiCache.set(abs, { hash, entries });
   return entries;
 }
 
-// Aliases for compatibility with possible expected names.
-export const parseApi = buildApiTable;
-export const getApiDoc = buildApiTable;
-export const loadApiDoc = buildApiTable;
-
 export function rehypeApi() {
   return (tree: any, file: any) => {
+    // file.data.apiSrcFiles: để caller (vite/plugin.ts) `addWatchFile` từng file — Vite chỉ tự
+    // watch file.md, không biết plugin có đọc thêm .tsx (#17).
     const apis: any[] = Array.isArray((file?.data as any)?.apis) ? (file.data as any).apis : [];
+    const watched: string[] = Array.isArray((file?.data as any)?.apiSrcFiles) ? (file.data as any).apiSrcFiles : [];
     const filePath = String((file as any)?.path ?? '');
 
     visit(tree, 'element', (node: any, index: number | undefined, parent: any) => {
@@ -92,6 +90,7 @@ export function rehypeApi() {
 
       const abs = resolveApiSrc(src, filePath);
       const data = buildApiTable(src, filePath);
+      watched.push(abs);
 
       apis.push({ id: hashFileContent(src + filePath).slice(0, 8), src: abs, data });
 
@@ -106,6 +105,9 @@ export function rehypeApi() {
       };
     });
 
-    if (file?.data) (file.data as any).apis = apis;
+    if (file?.data) {
+      (file.data as any).apis = apis;
+      (file.data as any).apiSrcFiles = watched;
+    }
   };
 }

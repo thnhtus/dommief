@@ -10,6 +10,18 @@ function textOf(node: any): string {
   return out;
 }
 
+/** Parser frontmatter dùng chung (yaml thật, không phải regex tự chế — tránh #12). */
+export function parseFrontmatterYaml(raw: string, opts: { file?: string; onWarn?: (msg: string) => void } = {}): Record<string, unknown> {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m || m[1] === undefined) return {};
+  try {
+    return (yaml.parse(m[1]) as Record<string, unknown>) ?? {};
+  } catch (e) {
+    opts.onWarn?.(`frontmatter_invalid_yaml: ${opts.file ?? ''}: ${(e as Error).message}`);
+    return {};
+  }
+}
+
 export function remarkMeta(options: RemarkMetaOptions = {}) {
   return (tree: any, file: any) => {
     const filename = options.filename ?? file?.path ?? file?.history?.[0] ?? '';
