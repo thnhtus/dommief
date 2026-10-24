@@ -2,6 +2,8 @@
 import { hydrateRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { AppRoutes } from './AppRoutes.js';
+import virtualSite from 'virtual:dommief/site';
+import { SiteProvider } from '../theme-api.js';
 
 /**
  * react-router không tự redirect `/foo/` → `/foo`. Normalize bằng `replaceState`
@@ -23,7 +25,9 @@ if (typeof window !== 'undefined') {
     hydrateRoot(
       el,
       <BrowserRouter>
-        <AppRoutes />
+        <SiteProvider value={virtualSite}>
+          <AppRoutes />
+        </SiteProvider>
       </BrowserRouter>,
     );
   }

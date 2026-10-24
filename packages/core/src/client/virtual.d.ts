@@ -4,3 +4,8 @@ declare module 'virtual:dommief/routes' {
   const routes: import('../routesModule.js').RouteModule[];
   export default routes;
 }
+
+declare module 'virtual:dommief/site' {
+  const site: import('../types.js').SiteData;
+  export default site;
+}

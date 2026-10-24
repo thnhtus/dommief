@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsup';
 export default defineConfig({
-  entry: { index: 'src/index.ts', cli: 'src/cli.ts', 'theme-api': 'src/theme-api.ts' },
+  entry: { index: 'src/index.ts', cli: 'src/cli.ts', 'theme-api': 'src/theme-api.tsx' },
   format: ['esm'],
   dts: true,
   clean: true,
