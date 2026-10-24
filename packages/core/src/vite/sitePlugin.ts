@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { buildRouteTable } from '../routes.js';
 import { createSiteModule } from '../siteModule.js';
+import { parseFrontmatter } from '../siteFeatures.js';
 import type { RouteConfig } from '../types.js';
 
 // Đặc tả: backlog DM-209. Plugin riêng `dommief:site` giữ `virtual:dommief/site` nhẹ.
@@ -58,6 +59,11 @@ export function dommiefSitePlugin(opts: SitePluginOptions): Plugin {
     load() {
       if (cache) return { code: cache, map: null };
       const t = getTable();
+      const frontmatter = Object.fromEntries(t.routes.map((r) => {
+        let raw = '';
+        try { raw = readFileSync(r.file, 'utf8'); } catch { raw = ''; }
+        return [r.id, parseFrontmatter(raw)];
+      }));
       const code = createSiteModule({
         routes: t.routes,
         config: {
@@ -66,6 +72,7 @@ export function dommiefSitePlugin(opts: SitePluginOptions): Plugin {
           description: config.description,
           locales: config.locales,
           themeConfig: config.themeConfig,
+          frontmatter,
         },
       });
       // ghi nhớ hash frontmatter hiện tại cho từng file
