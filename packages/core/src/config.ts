@@ -4,6 +4,8 @@ import path from 'node:path';
 import { loadConfigFromFile } from 'vite';
 import { DommiefError } from './markdown/errors.js';
 import type { ResolvedLocale, RouteConfig } from './types.js';
+import { createPluginHost } from './plugins.js';
+import type { DommiefPlugin } from './plugins.js';
 
 export type { ResolvedLocale } from './types.js';
 
@@ -27,6 +29,7 @@ export const ConfigSchema = z
     forceKebabCase: z.boolean().default(true),
     locales: z.array(LocaleInputSchema).default([{ id: 'en-US', name: 'English' }]),
     themeConfig: z.record(z.string(), z.unknown()).default({}),
+    plugins: z.array(z.any()).default([]),
   })
   .strict();
 
@@ -41,6 +44,7 @@ export interface ResolvedConfig extends RouteConfig {
   base: string;
   outDir: string;
   themeConfig: Record<string, unknown>;
+  plugins?: DommiefPlugin[];
 }
 
 export interface ResolveOptions {
@@ -82,7 +86,7 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
 
   // ponytail: shallow merge is exact while CLI/env only set top-level scalars (base, outDir).
   // DM-901 adds sitemap.hostname / ssg.concurrency → switch to deep merge (objects deep, arrays replace).
-  const merged: Record<string, unknown> = { ...userConfig };
+  let merged: Record<string, unknown> = { ...userConfig };
   const layer = (key: string, value: string | undefined, source: string) => {
     if (value === undefined || value === '') return;
     merged[key] = value;
@@ -102,6 +106,10 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
       { code: 'config_invalid' },
     );
   };
+
+  const pluginHost = createPluginHost(Array.isArray(merged.plugins) ? merged.plugins : []);
+  const modified = pluginHost.applyModifyConfig(merged);
+  if (modified && typeof modified === 'object') merged = { ...merged, ...(modified as Record<string, unknown>) };
 
   const parsed = ConfigSchema.safeParse(merged);
   if (!parsed.success) {
@@ -127,6 +135,7 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     forceKebabCase: c.forceKebabCase,
     locales,
     themeConfig: c.themeConfig,
+    plugins: (c.plugins ?? []) as DommiefPlugin[],
   };
   if (c.description !== undefined) config.description = c.description;
   return config;

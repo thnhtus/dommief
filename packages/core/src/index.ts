@@ -1,5 +1,7 @@
 export { defineConfig, loadConfig, loadConfigFile, resolveConfig } from './config.js';
 export type { ResolvedConfig, UserConfig } from './config.js';
+export { createPluginHost, registerPlugin, definePlugin, PluginHookHost, Hook } from './plugins.js';
+export type { DommiefPlugin, DommiefPluginObject, PluginSetup, BuildEndContext, PluginHookHost as PluginHooks } from './plugins.js';
 export { buildRouteTable } from './routes.js';
 export type { Route, RouteTable, SiteData, ResolvedLocale } from './types.js';
 export { buildNav, buildSidebar, paginate, parseFrontmatter } from './siteFeatures.js';

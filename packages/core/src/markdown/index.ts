@@ -15,6 +15,7 @@ import { rehypeText } from './rehype-text.js';
 import { rehypeDemo } from './rehype-demo.js';
 import { toModule } from './to-module.js';
 import { DommiefError } from './errors.js';
+import { createPluginHost, type PluginHookHost } from '../plugins.js';
 
 export interface TocItem { id: string; depth: number; title: string; }
 export interface TextFragment { type: 'content' | 'title'; value: string; }
@@ -24,16 +25,29 @@ export interface PageMeta {
   texts: TextFragment[];
 }
 
-export async function transformMarkdown(source: string, file: string): Promise<{ code: string; meta: PageMeta }> {
+export interface TransformMarkdownOptions {
+  remarkPlugins?: unknown[];
+  rehypePlugins?: unknown[];
+  hooks?: PluginHookHost;
+  plugins?: unknown[];
+}
+export async function transformMarkdown(source: string, file: string, opts: TransformMarkdownOptions = {}): Promise<{ code: string; meta: PageMeta }> {
+  const host = opts.hooks ?? (opts.plugins ? createPluginHost(opts.plugins) : undefined);
+  const remarkPlugins = [...(opts.remarkPlugins ?? []), ...(host ? host.collectRemarkPlugins() : [])];
+  const rehypePlugins = [...(opts.rehypePlugins ?? []), ...(host ? host.collectRehypePlugins() : [])];
   let processor: any;
   try {
     processor = unified()
       .use(remarkParse)
       .use(remarkFrontmatter, ['yaml'])
       .use(remarkGfm)
-      .use(remarkMeta, { filename: file })
+      .use(remarkMeta, { filename: file });
+    for (const p of remarkPlugins) processor = processor.use(p);
+    processor = processor
       .use(remarkRehype, { allowDangerousHtml: true })
-      .use(rehypeRaw)
+      .use(rehypeRaw);
+    for (const p of rehypePlugins) processor = processor.use(p);
+    processor = processor
       .use(rehypeSlug)
       .use(rehypeAutolinkHeadings)
       .use(rehypeLink)
