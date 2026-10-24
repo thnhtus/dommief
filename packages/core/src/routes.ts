@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { DommiefError } from './markdown/errors.js';
 import { winPath } from './utils/path.js';
 import type { ResolvedLocale, Route, RouteConfig, RouteTable } from './types.js';
+import { createPluginHost, type PluginHookHost } from './plugins.js';
 
 // Đặc tả: docs/spec/ROUTING.md §1–§5. Thứ tự bắt buộc trong normalizeRoutes:
 // locale → index/README → '.'→'/' → kebab → validate → trùng id/path.
@@ -202,11 +203,14 @@ export function routeConfigHash(config: RouteConfig): string {
 }
 
 /** Điểm vào duy nhất của tầng route: scan → normalize → sort → map tra cứu. JSON-safe. */
-export function buildRouteTable({ cwd, config }: { cwd: string; config: RouteConfig }): RouteTable {
+export function buildRouteTable({ cwd, config, hooks, plugins }: { cwd: string; config: RouteConfig; hooks?: PluginHookHost; plugins?: unknown[] }): RouteTable {
+  const host = hooks ?? (plugins ? createPluginHost(plugins) : (config as any)?.plugins ? createPluginHost((config as any).plugins) : undefined);
   const scan = scanRoutes({ cwd, config });
   const norm = normalizeRoutes(scan.routes, { cwd, config });
   const cmp = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
-  const routes = norm.routes.sort((a, b) => cmp(a.path, b.path) || cmp(a.id, b.id));
+  let routes = norm.routes;
+  if (host) routes = host.applyModifyRoutes(routes);
+  routes = routes.sort((a, b) => cmp(a.path, b.path) || cmp(a.id, b.id));
   const table: RouteTable = {
     warnings: [...scan.warnings, ...norm.warnings],
     routes,

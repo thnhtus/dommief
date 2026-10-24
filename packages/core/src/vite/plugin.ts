@@ -2,6 +2,7 @@ import type { Plugin } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig, type ResolvedConfig } from '../config.js';
+import { createPluginHost, type PluginHookHost } from '../plugins.js';
 import { transformMarkdown } from '../markdown/index.js';
 import { dommiefRoutesPlugin } from './routesPlugin.js';
 import { dommiefSitePlugin } from './sitePlugin.js';
@@ -14,6 +15,7 @@ const ENTRY_CLIENT = fileURLToPath(new URL('../client/entry-client.tsx', import.
 
 export function dommiefPlugin(opts: { root: string }) {
   let config: ResolvedConfig;
+  let host: PluginHookHost | undefined;
   // object proxy để routes/site plugin đọc config sau khi configResolved chạy.
   const cfgRef: any = {};
   const markdownPlugin: Plugin = {
@@ -22,6 +24,7 @@ export function dommiefPlugin(opts: { root: string }) {
     async configResolved() {
       config = await loadConfig(opts.root);
       Object.assign(cfgRef, config);
+      host = createPluginHost(config.plugins ?? []);
     },
     resolveId(id, importer) {
       if (id === 'virtual:dommief/entry') return '\0virtual:dommief/entry';
@@ -45,7 +48,7 @@ export function dommiefPlugin(opts: { root: string }) {
         const isMeta = id.endsWith('?meta');
         const file = isMeta ? id.slice(0, -'?meta'.length) : id;
         const code = await fs.promises.readFile(file, 'utf8');
-        const { code: out, meta } = await transformMarkdown(code, file);
+        const { code: out, meta } = await transformMarkdown(code, file, host ? { hooks: host } : {});
         if (isMeta) {
           // CONTRACTS §6: ?meta CHỈ trả frontmatter — không toc/texts.
           return { code: `export default ${JSON.stringify({ frontmatter: meta.frontmatter })};`, map: null, moduleType: 'js' };
@@ -58,6 +61,8 @@ export function dommiefPlugin(opts: { root: string }) {
       const title = (config as any)?.title ?? 'Dommief';
       let out = html;
       if (!/<title>/.test(out)) out = out.replace('<head>', `<head><title>${title}</title>`);
+      const tags = host ? host.collectHtmlHeadTags() : [];
+      if (tags.length) out = out.replace('</head>', tags.join('\n') + '</head>');
       if (!out.includes('virtual:dommief/entry')) {
         out = out.replace('</body>', `<script type="module" src="/virtual:dommief/entry"></script></body>`);
       }

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { dommiefPlugin } from './vite/plugin.js';
 import { createLogger } from './log.js';
 import { loadConfig } from './config.js';
+import { createPluginHost } from './plugins.js';
 
 const ENTRY_SERVER = fileURLToPath(new URL('./client/entry-server.tsx', import.meta.url));
 
@@ -34,6 +35,7 @@ cli.command('build', 'build site')
     const root = process.cwd();
     log.debug('root=' + root);
     const config = await loadConfig(root);
+    const pluginHost = createPluginHost(config.plugins ?? []);
     // (a) client build → dist/
     await build({ root, plugins: [dommiefPlugin({ root })], base: config.base, build: { outDir: 'dist' } });
     // (b) SSR build → .dommief/server.mjs
@@ -74,6 +76,7 @@ cli.command('build', 'build site')
       const html404 = await render('/404');
       fs.writeFileSync(path.join(root, 'dist', '404.html'), html404);
     } catch {}
+    await pluginHost.runBuildEnd({ config, outDir: path.join(root, 'dist'), routes });
     console.log('build done');
   });
 
