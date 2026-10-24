@@ -26,7 +26,6 @@ const config: RouteConfig = {
     { id: 'vi-VN', name: 'Tiếng Việt', base: '/vi/', suffix: '' },
   ],
   forceKebabCase: true,
-  cleanUrls: true,
 };
 
 describe('RouteTable (DM-208)', () => {
@@ -63,7 +62,6 @@ describe('RouteTable (DM-208)', () => {
     expect(h).toMatch(/^[0-9a-f]{8}$/);
     expect(routeConfigHash(config)).toBe(h);
     expect(routeConfigHash({ ...config, forceKebabCase: false })).not.toBe(h);
-    expect(routeConfigHash({ ...config, cleanUrls: false })).not.toBe(h);
     expect(routeConfigHash({ ...config, srcDir: 'x' })).not.toBe(h);
     expect(routeConfigHash({ ...config, title: 'khác' } as RouteConfig)).toBe(h);
   });

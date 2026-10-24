@@ -67,7 +67,3 @@ export function DumiApi({ src, data }: ApiProps) {
     </div>
   );
 }
-
-export function ApiTable(props: ApiProps) {
-  return <DumiApi {...props} />;
-}

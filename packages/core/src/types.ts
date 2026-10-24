@@ -55,7 +55,6 @@ export interface RouteConfig {
   docDirs: { dir: string }[];
   locales: ResolvedLocale[];
   forceKebabCase: boolean;
-  cleanUrls: boolean;
 }
 
 export interface RouteTable {

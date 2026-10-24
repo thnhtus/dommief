@@ -67,8 +67,9 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         const isMeta = id.endsWith('?meta');
         const file = isMeta ? id.slice(0, -'?meta'.length) : id;
         const code = await fs.promises.readFile(file, 'utf8');
-        const { code: out, meta, warnings } = await transformMarkdown(code, file, { hooks: state.host(), byFile: state.getTable().byFile, base: state.config().base });
+        const { code: out, meta, warnings, apiSrcFiles } = await transformMarkdown(code, file, { hooks: state.host(), byFile: state.getTable().byFile, base: state.config().base });
         for (const w of warnings) this.warn(w);
+        for (const apiFile of apiSrcFiles) this.addWatchFile(apiFile); // <API src> đọc file khác .md (#17)
         if (isMeta) {
           // ?meta trả frontmatter + toc (nhỏ; theme cần cho mục lục) — không texts (nặng, chỉ để tìm kiếm).
           return { code: `export default ${JSON.stringify({ frontmatter: meta.frontmatter, toc: meta.toc })};`, map: null, moduleType: 'js' };

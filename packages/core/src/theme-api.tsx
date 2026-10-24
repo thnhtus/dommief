@@ -2,7 +2,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { useLocation } from 'react-router';
 import type { NavItem, PageSummary, SidebarGroup, SiteData } from './types.js';
 
-export type { SiteData, NavItem, SidebarGroup, TocEntry } from './types.js';
+export type { SiteData, NavItem, SidebarGroup, TocEntry, PageSummary } from './types.js';
 
 export const SiteContext = createContext<SiteData | null>(null);
 

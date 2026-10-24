@@ -2,7 +2,7 @@ import type { Plugin, ViteDevServer } from 'vite';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createSiteModule } from '../siteModule.js';
-import { parseFrontmatter } from '../siteFeatures.js';
+import { parseFrontmatterYaml } from '../markdown/remark-meta.js';
 import type { DommiefState } from './state.js';
 
 // Đặc tả: backlog DM-209. Plugin riêng `dommief:site` giữ `virtual:dommief/site` nhẹ.
@@ -42,7 +42,7 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
       if (id === virtualId) return resolvedId;
       return null;
     },
-    load(id) {
+    load(this: any, id) {
       if (id !== resolvedId) return null;
       if (cache) return { code: cache, map: null };
       const config = state.config();
@@ -50,7 +50,7 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
       const frontmatter = Object.fromEntries(t.routes.map((r) => {
         let raw = '';
         try { raw = readFileSync(r.file, 'utf8'); } catch { raw = ''; }
-        return [r.id, parseFrontmatter(raw)];
+        return [r.id, parseFrontmatterYaml(raw, { file: r.file, onWarn: (m) => this.warn(m) })];
       }));
       const code = createSiteModule({
         routes: t.routes,

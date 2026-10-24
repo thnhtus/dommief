@@ -1,4 +1,5 @@
 import type { Route, NavItem, SidebarGroup, SidebarItem, ResolvedLocale } from './types.js';
+import { parseFrontmatterYaml } from './markdown/remark-meta.js';
 
 export type FrontmatterMap = Record<string, Record<string, unknown>>;
 
@@ -116,19 +117,7 @@ export function paginate(routes: Route[], currentPath: string): PaginationResult
   };
 }
 
+/** @deprecated dùng `parseFrontmatterYaml` (yaml thật). Giữ lại cho tương thích export cũ, cùng chung một parser (#12). */
 export function parseFrontmatter(fileContent: string): Record<string, unknown> {
-  const m = fileContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!m || !m[1]) return {};
-  const out: Record<string, unknown> = {};
-  for (const line of m[1].split(/\r?\n/)) {
-  const km = line.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
-    if (!km || !km[1] || km[2] === undefined) continue;
-    let v: unknown = km[2]!.trim();
-    if (v === 'true') v = true;
-    else if (v === 'false') v = false;
-    else if (/^-?\d+(\.\d+)?$/.test(String(v))) v = Number(v);
-    else if (typeof v === 'string') v = v.replace(/^['"]|['"]$/g, '');
-    out[km[1]!] = v;
-  }
-  return out;
+  return parseFrontmatterYaml(fileContent);
 }

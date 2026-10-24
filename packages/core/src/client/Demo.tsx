@@ -1,4 +1,4 @@
-import React, { useState, type ReactNode } from 'react';
+import React, { useState } from 'react';
 
 export interface DemoProps {
   id?: string;
@@ -35,12 +35,4 @@ export function DumiDemo({ id, source }: DemoProps) {
       ) : null}
     </div>
   );
-}
-
-export function Previewer({ children }: { children?: ReactNode }) {
-  return <div className="dommief-previewer">{children}</div>;
-}
-
-export function DemoLayout({ children }: { children?: ReactNode }) {
-  return <div className="dommief-demo-layout">{children}</div>;
 }
