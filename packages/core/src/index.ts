@@ -7,6 +7,8 @@ export type { Route, RouteTable, SiteData, ResolvedLocale } from './types.js';
 export { buildNav, buildSidebar, paginate, parseFrontmatter } from './siteFeatures.js';
 export type { FrontmatterMap, PaginationResult } from './siteFeatures.js';
 export { transformMarkdown } from './markdown/index.js';
+export { rehypeApi, buildApiTable, parseApi, getApiDoc, loadApiDoc, clearApiCache, hashFileContent } from './markdown/rehype-api.js';
+export type { ApiEntry, ApiProp } from './markdown/rehype-api.js';
 export { DommiefError, formatError } from './markdown/errors.js';
 export type { PageMeta, TocItem, TextFragment } from './markdown/index.js';
 export { createLogger, networkGuardEnabled, assertNoNetwork } from './log.js';
