@@ -86,7 +86,10 @@ export function dommiefSitePlugin(opts: SitePluginOptions): Plugin {
     },
     watchChange(id, { event }) {
       if (!id.endsWith('.md')) return;
-      if (event === 'create' || event === 'delete') invalidate();
+      if (event === 'create' || event === 'delete') {
+        invalidate();
+        server?.ws.send({ type: 'full-reload' });
+      }
     },
   };
 }

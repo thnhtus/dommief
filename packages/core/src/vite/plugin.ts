@@ -6,9 +6,12 @@ import { transformMarkdown } from '../markdown/index.js';
 import { dommiefRoutesPlugin } from './routesPlugin.js';
 import { dommiefSitePlugin } from './sitePlugin.js';
 import { winPath } from '../utils/path.js';
+import { fileURLToPath } from 'node:url';
 
 // Plugin tổng hợp: giữ phần transform md + ?meta, và uỷ thác virtual:dommief/routes
 // + virtual:dommief/site cho hai plugin riêng để invalidate độc lập (DM-206/209).
+const ENTRY_CLIENT = fileURLToPath(new URL('../client/entry-client.tsx', import.meta.url));
+
 export function dommiefPlugin(opts: { root: string }) {
   let config: ResolvedConfig;
   // object proxy để routes/site plugin đọc config sau khi configResolved chạy.
@@ -21,6 +24,7 @@ export function dommiefPlugin(opts: { root: string }) {
       Object.assign(cfgRef, config);
     },
     resolveId(id, importer) {
+      if (id === 'virtual:dommief/entry') return '\0virtual:dommief/entry';
       if (id === 'virtual:dommief/routes' || id === 'virtual:dommief/site') return null;
       if (id.startsWith('virtual:dommief/')) return '\0' + id;
       if (id.endsWith('.md') || id.endsWith('.md?meta')) {
@@ -34,6 +38,9 @@ export function dommiefPlugin(opts: { root: string }) {
       return null;
     },
     async load(id) {
+      if (id === '\0virtual:dommief/entry') {
+        return { code: `import ${JSON.stringify(ENTRY_CLIENT)};`, map: null, moduleType: 'js' };
+      }
       if (id.endsWith('.md') || id.endsWith('.md?meta')) {
         const isMeta = id.endsWith('?meta');
         const file = isMeta ? id.slice(0, -'?meta'.length) : id;
@@ -46,6 +53,15 @@ export function dommiefPlugin(opts: { root: string }) {
         return { code: out, map: null, moduleType: 'jsx' };
       }
       return null;
+    },
+    transformIndexHtml(html) {
+      const title = (config as any)?.title ?? 'Dommief';
+      let out = html;
+      if (!/<title>/.test(out)) out = out.replace('<head>', `<head><title>${title}</title>`);
+      if (!out.includes('virtual:dommief/entry')) {
+        out = out.replace('</body>', `<script type="module" src="/virtual:dommief/entry"></script></body>`);
+      }
+      return out;
     },
   };
   const routesPlugin = dommiefRoutesPlugin({ cwd: opts.root, config: cfgRef as any });
