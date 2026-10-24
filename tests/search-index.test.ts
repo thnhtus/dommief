@@ -3,7 +3,7 @@ import { transformMarkdown } from '../packages/core/src/markdown/index.ts';
 import { buildSearchIndex } from '../packages/core/src/search.ts';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import MiniSearch from '/Users/thanhtu1/persona/dommief/node_modules/.pnpm/minisearch@7.2.0/node_modules/minisearch/dist/es/index.js';
+import MiniSearch from 'minisearch';
 
 describe('search index', () => {
   it('builds per locale and is queryable', async () => {

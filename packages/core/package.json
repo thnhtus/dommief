@@ -15,10 +15,17 @@
     "./theme-api": {
       "types": "./dist/theme-api.d.ts",
       "default": "./dist/theme-api.js"
+    },
+    "./client": {
+      "default": "./src/client/index.tsx"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src/client",
+    "src/types.ts",
+    "src/routesModule.ts",
+    "src/theme-api.tsx"
   ],
   "scripts": {
     "build": "tsup",
