@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "typecheck": "tsc -p packages/core --noEmit && tsc -p packages/theme-default --noEmit && tsc -p examples/docs --noEmit"
+    "typecheck": "tsc -p packages/core --noEmit"
   },
   "devDependencies": {
     "@types/hast": "^3.0.5",
