@@ -34,7 +34,8 @@ export interface SidebarGroup {
   children: SidebarItem[];
 }
 
-export interface PageSummary { frontmatter: Record<string, unknown>; }
+export interface TocEntry { id: string; depth: number; title: string; }
+export interface PageSummary { frontmatter: Record<string, unknown>; toc?: TocEntry[]; }
 
 export interface SiteData {
   base: string;

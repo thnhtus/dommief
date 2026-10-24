@@ -31,8 +31,12 @@ export interface TransformMarkdownOptions {
   rehypePlugins?: unknown[];
   hooks?: PluginHookHost;
   plugins?: unknown[];
+  /** file md tuyệt đối → route; để `rehypeLink` đổi `./x.md` thành path route thật. */
+  byFile?: Record<string, { path: string }>;
+  /** `config.base` để gắn tiền tố cho link nội bộ. */
+  base?: string;
 }
-export async function transformMarkdown(source: string, file: string, opts: TransformMarkdownOptions = {}): Promise<{ code: string; meta: PageMeta }> {
+export async function transformMarkdown(source: string, file: string, opts: TransformMarkdownOptions = {}): Promise<{ code: string; meta: PageMeta; warnings: string[] }> {
   const host = opts.hooks ?? (opts.plugins ? createPluginHost(opts.plugins) : undefined);
   const remarkPlugins = [...(opts.remarkPlugins ?? []), ...(host ? host.collectRemarkPlugins() : [])];
   const rehypePlugins = [...(opts.rehypePlugins ?? []), ...(host ? host.collectRehypePlugins() : [])];
@@ -52,8 +56,8 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
     processor = processor
       .use(rehypeSlug)
       .use(rehypeAutolinkHeadings)
-      .use(rehypeLink)
-      .use(rehypeImg, { base: '/' })
+      .use(rehypeLink, opts.byFile ? { byFile: opts.byFile, base: opts.base ?? '/' } : {})
+      .use(rehypeImg)
       .use(rehypeDesc)
       .use(rehypeStrip)
       .use(rehypeText)
@@ -75,6 +79,6 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
     toc: (vfile.data?.toc ?? []) as TocItem[],
     texts: (vfile.data?.texts ?? []) as TextFragment[],
   };
-  const code = toModule(hast, meta);
-  return { code, meta };
+  const code = toModule(hast, meta, (vfile.data?.images ?? []) as { name: string; specifier: string }[]);
+  return { code, meta, warnings: (vfile.data?.warnings ?? []) as string[] };
 }

@@ -23,7 +23,7 @@ export interface SiteModuleConfig {
 export function createSiteModule({ routes, config }: { routes: Route[]; config: SiteModuleConfig }): string {
   const imports = routes.map((r, i) => `import meta${i} from ${JSON.stringify(winPath(r.file) + '?meta')};`);
   const routesById = Object.fromEntries(routes.map((r) => [r.id, r]));
-  const meta = routes.map((r, i) => `    ${JSON.stringify(r.id)}: { frontmatter: meta${i}.frontmatter ?? {} },`);
+  const meta = routes.map((r, i) => `    ${JSON.stringify(r.id)}: { frontmatter: meta${i}.frontmatter ?? {}, toc: meta${i}.toc ?? [] },`);
   const frontmatter = config.frontmatter ?? {};
   const nav = buildNav(routes, frontmatter, config.locales);
   const sidebar = buildSidebar(routes, frontmatter, config.locales);

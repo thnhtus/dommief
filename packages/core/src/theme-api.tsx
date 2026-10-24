@@ -1,8 +1,8 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { useLocation } from 'react-router';
-import type { NavItem, SidebarGroup, SiteData } from './types.js';
+import type { NavItem, PageSummary, SidebarGroup, SiteData } from './types.js';
 
-export type { SiteData, NavItem, SidebarGroup } from './types.js';
+export type { SiteData, NavItem, SidebarGroup, TocEntry } from './types.js';
 
 export const SiteContext = createContext<SiteData | null>(null);
 
@@ -15,24 +15,33 @@ export function useSiteData(): SiteData {
   return (ctx ?? ({} as SiteData));
 }
 
-export function useRouteMeta(): { frontmatter: Record<string, unknown>; toc?: unknown; [k: string]: unknown } {
+/** Locale của pathname (đã bỏ basename): route khớp → locale của route; không khớp (404) → base locale dài nhất; cuối cùng locale mặc định. */
+export function localeIdFor(site: SiteData, pathname: string): string {
+  const locales = site.locales ?? [];
+  const def = locales[0]?.id ?? '';
+  const route = Object.values(site.routes ?? {}).find((r) => r.path === pathname);
+  if (route) return route.locale ?? def;
+  const hit = locales
+    .filter((l) => l.suffix === '' && l.base !== '/' && (pathname + '/').startsWith(l.base))
+    .sort((a, b) => b.base.length - a.base.length)[0];
+  return hit?.id ?? def;
+}
+
+export function useRouteMeta(): PageSummary {
   const site = useSiteData();
-  const location = useLocation();
-  const route = Object.values(site.routes).find((r) => r.path === location.pathname)
-    ?? Object.values(site.routes)[0];
-  const meta = route ? site.meta[route.id] : undefined;
-  return (meta as any) ?? { frontmatter: {} };
+  const { pathname } = useLocation();
+  const route = Object.values(site.routes ?? {}).find((r) => r.path === pathname);
+  return (route ? site.meta?.[route.id] : undefined) ?? { frontmatter: {} };
 }
 
 export function useNavData(): NavItem[] {
   const site = useSiteData();
-  // nav is keyed by locale base path; default to first locale's root
-  const keys = Object.keys(site.nav);
-  return site.nav[keys[0] ?? '/'] ?? (Object.values(site.nav)[0] ?? []);
+  const { pathname } = useLocation();
+  return site.nav?.[localeIdFor(site, pathname)] ?? [];
 }
 
 export function useSidebarData(): SidebarGroup[] {
   const site = useSiteData();
-  const location = useLocation();
-  return site.sidebar[location.pathname] ?? site.sidebar[Object.keys(site.sidebar)[0] ?? ''] ?? [];
+  const { pathname } = useLocation();
+  return site.sidebar?.[localeIdFor(site, pathname)] ?? [];
 }

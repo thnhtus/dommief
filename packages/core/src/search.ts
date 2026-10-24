@@ -12,12 +12,13 @@ export interface MiniSearchConfig {
 export function createMiniSearchConfig(): MiniSearchConfig {
   const stripDiacritics = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const processTerm = (term: string) => {
-    const t = stripDiacritics(term).toLowerCase().normalize('NFC').trim();
+    // `đ` không tách được bằng NFD nên đổi tay
+    const t = stripDiacritics(term).toLowerCase().replace(/đ/g, 'd').normalize('NFC').trim();
     return t.length ? t : null;
   };
   const tokenize = (text: string) => {
     const out: string[] = [];
-    for (const raw of text.split(/\s+/)) {
+    for (const raw of text.split(/[\s\p{P}]+/u)) {
       if (!raw) continue;
       // CJK: split each character
       let buf = '';

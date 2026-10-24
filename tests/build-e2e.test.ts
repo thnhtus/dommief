@@ -38,4 +38,15 @@ describe('dommief build (fixture site, base /sub/)', () => {
     expect(html).toContain('plain-code-marker');
     expect(html).toContain('dommief-demo');
   });
+
+  it('link .md thành path route thật (kebab-case, theo vị trí file), kèm basename', () => {
+    expect(read('index.html')).toContain('href="/sub/guide/get-started"');
+    expect(read('guide/get-started/index.html')).toContain('href="/sub/"');
+  });
+
+  it('ảnh tương đối được bundle thành asset có băm tên, dưới base', () => {
+    const html = read('guide/get-started/index.html');
+    expect(html).toMatch(/<img src="\/sub\/assets\/logo-[\w-]+\.svg"/);
+    expect(fs.readdirSync(path.join(dist, 'assets')).some((f) => /^logo-.*\.svg$/.test(f))).toBe(true);
+  });
 });

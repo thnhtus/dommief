@@ -104,9 +104,12 @@ export interface PaginationResult {
 }
 
 export function paginate(routes: Route[], currentPath: string): PaginationResult {
-  const sorted = [...routes].sort((a, b) => a.path.localeCompare(b.path));
+  const current = routes.find((r) => r.path === currentPath);
+  if (!current) return {};
+  // chỉ trong cùng locale; thứ tự theo code point như route table
+  const cmp = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
+  const sorted = routes.filter((r) => r.locale === current.locale).sort((a, b) => cmp(a.path, b.path));
   const idx = sorted.findIndex((r) => r.path === currentPath);
-  if (idx < 0) return {};
   return {
     ...(idx > 0 ? { prev: sorted[idx - 1] } : {}),
     ...(idx < sorted.length - 1 ? { next: sorted[idx + 1] } : {}),

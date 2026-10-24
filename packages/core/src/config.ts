@@ -11,7 +11,10 @@ export type { ResolvedLocale } from './types.js';
 
 // Subset of CONFIG §1 needed by Phase 2 (DM-201). DM-901 extends it without restructuring.
 const LocaleInputSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().min(1).refine(
+    (s) => { try { Intl.getCanonicalLocales(s); return true; } catch { return false; } },
+    'phải là mã locale BCP 47 (vd "en-US", "vi-VN"; không dùng "_")',
+  ),
   name: z.string().optional(),
   base: z.string().startsWith('/', 'phải bắt đầu bằng "/"').optional(),
   suffix: z.string().optional(),

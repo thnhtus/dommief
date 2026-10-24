@@ -14,7 +14,9 @@ function frontmatterHash(file: string): string {
   try { raw = readFileSync(file, 'utf8'); } catch { return ''; }
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   const block = m?.[1] ?? '';
-  return createHash('sha256').update(block).digest('hex').slice(0, 16);
+  // heading cũng vào hash: `toc` nằm trong site module nên đổi tiêu đề phải invalidate nó.
+  const headings = raw.match(/^#{1,6}\s.*$/gm)?.join('\n') ?? '';
+  return createHash('sha256').update(block + '\n--\n' + headings).digest('hex').slice(0, 16);
 }
 
 export function dommiefSitePlugin(state: DommiefState): Plugin {
@@ -71,6 +73,7 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
       if (!id.endsWith('.md')) return;
       const oldHash = frontmatterHashes.get(id);
       const newHash = frontmatterHash(id);
+      // Chưa có hash cũ (site module chưa từng load) ⇒ cache cũng chưa có, không cần invalidate.
       if (oldHash !== undefined && oldHash !== newHash) {
         frontmatterHashes.set(id, newHash);
         invalidate();

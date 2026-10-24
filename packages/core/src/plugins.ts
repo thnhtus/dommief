@@ -1,4 +1,5 @@
 import type { Route } from './types.js';
+import { DommiefError } from './markdown/errors.js';
 import type { ResolvedConfig } from './config.js';
 
 export interface BuildEndContext {
@@ -9,7 +10,8 @@ export interface BuildEndContext {
 
 export type DommiefPluginObject = {
   name?: string;
-  setup?: (hooks: PluginHookHost) => void | Promise<void>;
+  /** Đồng bộ: hook phải được `tap` xong trước khi hàm trả về. */
+  setup?: (hooks: PluginHookHost) => void;
   modifyConfig?: (config: unknown) => unknown;
   modifyRoutes?: (routes: Route[]) => Route[] | void;
   addRemarkPlugins?: () => unknown | unknown[];
@@ -18,7 +20,7 @@ export type DommiefPluginObject = {
   onBuildEnd?: (ctx: BuildEndContext) => void | Promise<void>;
 };
 
-export type PluginSetup = (hooks: PluginHookHost) => void | Promise<void>;
+export type PluginSetup = (hooks: PluginHookHost) => void;
 export type DommiefPlugin = DommiefPluginObject | PluginSetup;
 
 export class Hook<TArg = unknown, TResult = unknown> {
@@ -26,9 +28,6 @@ export class Hook<TArg = unknown, TResult = unknown> {
   constructor(name = '') { this.name = name; }
   taps: { name: string; fn: (arg: TArg) => TResult | void | Promise<TResult | void> }[] = [];
   tap(name: string, fn: (arg: TArg) => TResult | void | Promise<TResult | void>) {
-    this.taps.push({ name, fn });
-  }
-  async tapPromise(name: string, fn: (arg: TArg) => Promise<TResult | void>) {
     this.taps.push({ name, fn });
   }
   call(arg: TArg): TArg {
@@ -98,18 +97,21 @@ export class PluginHookHost {
   }
 }
 
+function assertSync(result: unknown, name: string): void {
+  if (result && typeof (result as { then?: unknown }).then === 'function') {
+    throw new DommiefError(`plugin "${name}": setup phải đồng bộ — hook tap sau \`await\` sẽ không bao giờ chạy`, { code: 'plugin_setup_async' });
+  }
+}
+
 export function registerPlugin(host: PluginHookHost, plugin: DommiefPlugin | null | undefined): void {
   if (!plugin) return;
   if (typeof plugin === 'function') {
-    (plugin as PluginSetup)(host);
+    assertSync((plugin as PluginSetup)(host), plugin.name || 'plugin');
     return;
   }
   const p = plugin as DommiefPluginObject;
-  if (typeof p.setup === 'function') {
-    p.setup(host);
-    return;
-  }
   const name = p.name ?? 'plugin';
+  if (typeof p.setup === 'function') assertSync(p.setup(host), name); // không return: setup + hook khai báo cùng tồn tại
   if (typeof p.modifyConfig === 'function') host.modifyConfig.tap(name, p.modifyConfig as any);
   if (typeof p.modifyRoutes === 'function') host.modifyRoutes.tap(name, p.modifyRoutes as any);
   if (typeof p.addRemarkPlugins === 'function') host.addRemarkPlugins.tap(name, p.addRemarkPlugins as any);
