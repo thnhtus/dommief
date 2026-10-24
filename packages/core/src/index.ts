@@ -9,3 +9,5 @@ export { DommiefError, formatError } from './markdown/errors.js';
 export type { PageMeta, TocItem, TextFragment } from './markdown/index.js';
 export { createLogger, networkGuardEnabled, assertNoNetwork } from './log.js';
 export type { Logger } from './log.js';
+export { buildSearchIndex, createMiniSearchConfig, INDEX_BUDGET_BYTES_PER_PAGE } from './search.js';
+export type { BuildSearchIndexOptions, BuildSearchIndexResult, MiniSearchConfig, SearchDocument } from './search.js';
