@@ -4,14 +4,20 @@ import { toJs, jsx } from 'estree-util-to-js';
 /** Specifier mà plugin `dommief:markdown` resolve về `client/index.tsx` của package. */
 export const CLIENT_MODULE = 'dommief/client';
 
-export function toModule(hast: any, meta: any): string {
+export interface ModuleImage { name: string; specifier: string }
+
+export function toModule(hast: any, meta: any, images: ModuleImage[] = []): string {
   const estree = toEstree(hast, { elementAttributeNameCase: 'react' }) as any;
   const { value: code } = toJs(estree, { handlers: jsx });
-  const body = code.replace(/;\s*$/, '').trim();
+  let body = code.replace(/;\s*$/, '').trim();
+  const imageImports = images.map((im, i) => {
+    body = body.split(`src="${im.name}"`).join(`src={__dmImg${i}}`);
+    return `import __dmImg${i} from ${JSON.stringify(im.specifier)};\n`;
+  }).join('');
   const used = ['DumiDemo', 'DumiApi'].filter((n) => new RegExp(`<${n}[\\s/>]`).test(body));
   const clientImport = used.length ? `import { ${used.join(', ')} } from '${CLIENT_MODULE}';\n` : '';
   return `import React from 'react';
-${clientImport}export default function Content(){ return (
+${imageImports}${clientImport}export default function Content(){ return (
 ${body}
 ); }
 export const meta = ${JSON.stringify(meta)};

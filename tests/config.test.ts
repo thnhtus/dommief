@@ -44,13 +44,13 @@ describe('resolveConfig', () => {
   });
 
   it('(f) second locale base "/" → error key locales[1].base', () => {
-    const e = fail(() => resolve({ locales: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B', base: '/' }] }));
+    const e = fail(() => resolve({ locales: [{ id: 'aa', name: 'A' }, { id: 'bb', name: 'B', base: '/' }] }));
     expect(e.code).toBe('config_invalid');
     expect(e.message).toContain('locales[1].base');
   });
 
   it('(g) mixing base and suffix → error key locales[1]', () => {
-    const e = fail(() => resolve({ locales: [{ id: 'a', name: 'A', base: '/' }, { id: 'b', name: 'B', suffix: '.b' }] }));
+    const e = fail(() => resolve({ locales: [{ id: 'aa', name: 'A', base: '/' }, { id: 'bb', name: 'B', suffix: '.b' }] }));
     expect(e.message).toContain('locales[1]');
     expect(e.message).toContain('suffix');
   });
@@ -68,6 +68,14 @@ describe('resolveConfig', () => {
     const e = fail(() => resolve({ titel: 'x' } as unknown as UserConfig));
     expect(e.message).toContain('titel');
     expect(e.message).toContain('"title"');
+  });
+});
+
+describe('locale id (#15)', () => {
+  it('"zh_CN" → config_invalid thay vì RangeError ở bước route', () => {
+    const e = fail(() => resolve({ locales: [{ id: 'zh_CN', name: 'x' }] }));
+    expect(e.code).toBe('config_invalid');
+    expect(e.message).toContain('locales[0].id');
   });
 });
 

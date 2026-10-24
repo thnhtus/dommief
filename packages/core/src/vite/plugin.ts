@@ -67,10 +67,11 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         const isMeta = id.endsWith('?meta');
         const file = isMeta ? id.slice(0, -'?meta'.length) : id;
         const code = await fs.promises.readFile(file, 'utf8');
-        const { code: out, meta } = await transformMarkdown(code, file, { hooks: state.host() });
+        const { code: out, meta, warnings } = await transformMarkdown(code, file, { hooks: state.host(), byFile: state.getTable().byFile, base: state.config().base });
+        for (const w of warnings) this.warn(w);
         if (isMeta) {
-          // CONTRACTS §6: ?meta CHỈ trả frontmatter — không toc/texts.
-          return { code: `export default ${JSON.stringify({ frontmatter: meta.frontmatter })};`, map: null, moduleType: 'js' };
+          // ?meta trả frontmatter + toc (nhỏ; theme cần cho mục lục) — không texts (nặng, chỉ để tìm kiếm).
+          return { code: `export default ${JSON.stringify({ frontmatter: meta.frontmatter, toc: meta.toc })};`, map: null, moduleType: 'js' };
         }
         return { code: out, map: null, moduleType: 'jsx' };
       }
