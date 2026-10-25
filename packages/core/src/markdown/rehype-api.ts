@@ -64,7 +64,7 @@ export function buildApiTable(src: string, filePath: string = ''): ApiEntry[] | 
 
   // loadDocgen() ngoài try: thiếu/sai bản typescript phải báo lỗi, không được nuốt thành "No API data".
   const parser = loadDocgen().withDefaultConfig({});
-  let docs: any[] = [];
+  let docs: any[];
   try {
     docs = parser.parse(abs) ?? [];
   } catch {

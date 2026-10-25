@@ -126,6 +126,7 @@ export function normalizeRoutes(raw: Route[], { cwd, config }: { cwd: string; co
         code: 'route_invalid_path',
         message: `dommief: routes: ký tự không hợp lệ "${ch}" trong đường dẫn của file\n  ${show(r.file)}\n  segment chỉ được chứa chữ, số, "-" và "_". Đổi tên file.`,
       });
+      // eslint-disable-next-line no-control-regex -- \x00 là biên dưới của dải ASCII (cố ý), không phải ký tự điều khiển lọt vào nhầm.
     } else if (/[^\x00-\x7F]/.test(routePath)) {
       warnings.push(`route_non_ascii: ${show(r.file)} → "/${routePath}" có ký tự ngoài ASCII; NFC/NFD và hosting tĩnh có thể lệch, nên đặt tên file ASCII`);
     }
