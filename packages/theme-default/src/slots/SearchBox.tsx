@@ -2,7 +2,7 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useSiteData, useSiteSearch, type SearchHit } from 'dommief/theme-api';
 import styles from '../styles/search.module.css';
-import { buildSnippet } from './search-snippet.js';
+import { buildSnippet } from '../utils/search-snippet.js';
 
 // DM-803. Ô nhập có debounce -> useSiteSearch (không gọi worker trực tiếp). role="search" +
 // combobox/listbox/option + aria-activedescendant. Worker chỉ được tạo ở truy vấn đầu tiên
@@ -18,22 +18,36 @@ interface Group { pageKey: string; pageTitle: string; hits: SearchHit[] }
  * (paragraph) — nếu MiniSearch khớp qua field `pageTitle` (đồng nhất với mọi fragment cùng
  * trang khi trang chưa có heading con), KHÔNG dedupe sẽ ra hàng chục "kết quả" trùng title
  * nhưng snippet vô nghĩa — bắt trực tiếp bằng kiểm tay trong trình duyệt thật (query "hello"
- * trả 8 hàng cho 1 trang, snippet lần lượt là "a", "b", "1", "2"...). Giữ hit điểm cao nhất
- * MỖI `sectionKey`; ưu tiên hit có `highlight` thật (chứng tỏ khớp đúng trong nội dung,
- * không phải chỉ khớp qua field tiêu đề dùng chung).
+ * trả 8 hàng cho 1 trang, snippet lần lượt là "a", "b", "1", "2"...).
+ *
+ * Đây là band-aid ở tầng UI cho một vấn đề nằm ở tầng index (review): `pageTitle`/`sectionTitle`
+ * nằm trong SEARCH_FIELDS nên MỌI fragment của section đều "khớp" khi query trúng tiêu đề. Sửa
+ * đúng chỗ là đổi search-config.ts (tách field tiêu đề khỏi full-text, hoặc boost thấp hơn hẳn)
+ * — đổi ở DM-801/804, không đổi ở đây để không phá contract index đã merge.
+ *
+ * Giữ TỐI ĐA 3 hit mỗi section (không phải 1): một section dài có thể có nhiều đoạn khớp thật,
+ * giữ đúng 1 sẽ che mất chúng. Ưu tiên hit có `highlight` thật trước (bằng chứng khớp nội dung,
+ * không chỉ khớp qua field tiêu đề dùng chung) — nhưng LƯU Ý: `highlight === null` cũng xảy ra
+ * với khớp fuzzy hợp lệ (MiniSearch chạy `fuzzy: 0.2`, vd gõ sai một ký tự), không chỉ với khớp
+ * giả qua title; đây là ưu tiên hiển thị, không phải bộ lọc đúng/sai.
  */
+const MAX_HITS_PER_SECTION = 3;
 function groupHits(hits: SearchHit[]): Group[] {
-  const bestBySection = new Map<string, SearchHit>();
+  const bySection = new Map<string, SearchHit[]>();
   for (const hit of hits) {
-    const prev = bestBySection.get(hit.sectionKey);
-    const better = !prev || (hit.highlight && !prev.highlight) || (!!hit.highlight === !!prev.highlight && hit.score > prev.score);
-    if (better) bestBySection.set(hit.sectionKey, hit);
+    const arr = bySection.get(hit.sectionKey) ?? [];
+    arr.push(hit);
+    bySection.set(hit.sectionKey, arr);
   }
   const groups: Group[] = [];
-  for (const hit of bestBySection.values()) {
-    let g = groups.find((x) => x.pageKey === hit.pageKey);
-    if (!g) { g = { pageKey: hit.pageKey, pageTitle: hit.pageTitle, hits: [] }; groups.push(g); }
-    g.hits.push(hit);
+  for (const arr of bySection.values()) {
+    const top = [...arr]
+      .sort((a, b) => (b.highlight ? 1 : 0) - (a.highlight ? 1 : 0) || b.score - a.score)
+      .slice(0, MAX_HITS_PER_SECTION);
+    const first = top[0]!;
+    let g = groups.find((x) => x.pageKey === first.pageKey);
+    if (!g) { g = { pageKey: first.pageKey, pageTitle: first.pageTitle, hits: [] }; groups.push(g); }
+    g.hits.push(...top);
   }
   return groups;
 }
@@ -45,12 +59,15 @@ export function SearchBox() {
   const uid = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const latestQuery = useRef('');
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [active, setActive] = useState(-1);
+
+  const reset = () => { setQuery(''); setHits([]); setStatus('idle'); setActive(-1); };
 
   useEffect(() => {
     latestQuery.current = query;
@@ -69,15 +86,28 @@ export function SearchBox() {
   }, [query, search]);
 
   const groups = useMemo(() => groupHits(hits), [hits]);
-  // Danh sách PHẳNG theo đúng thứ tự hiển thị (sau dedupe) — `active` PHẢI là index trong
+  // Danh sách PHẲNG theo đúng thứ tự hiển thị (sau dedupe) — `active` PHẢI là index trong
   // danh sách này, KHÔNG phải index trong `hits` gốc: bắt trực tiếp bằng kiểm tay — trước
   // khi sửa, `ArrowDown` tăng `active` modulo `hits.length` (trước dedupe) trong khi UI chỉ
   // render số hạng mục đã dedupe (ít hơn), nên nhiều lần nhấn không trúng option nào đang
   // hiển -> `aria-activedescendant` trỏ vào hư không, `Enter` không điều hướng được.
   const visible = useMemo(() => groups.flatMap((g) => g.hits), [groups]);
+
+  useEffect(() => {
+    if (active < 0) return;
+    const el = listRef.current?.querySelector(`#${CSS.escape(optionId(active))}`);
+    el?.scrollIntoView?.({ block: 'nearest' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
   if (site.search?.enabled === false) return null;
 
-  const expanded = open && status !== 'idle';
+  // Listbox CHỈ tồn tại khi có k có kết quả thật (status === 'results') — `aria-expanded`/
+  // `aria-controls` không được trỏ vào id của một phần tử KHÔNG render (review #1: trước đây
+  // `expanded` bật ngay từ trạng thái 'loading', lúc đó chưa có `#${uid}-list` nào trong DOM —
+  // defect a11y thật, axe/ARIA validator sẽ bắt `aria-controls` trỏ tới id không tồn tại).
+  const hasListbox = status === 'results';
+  const expanded = open && hasListbox;
   const optionId = (i: number) => `${uid}-opt-${i}`;
 
   const go = (hit: SearchHit) => {
@@ -85,6 +115,7 @@ export function SearchBox() {
     const anchor = m ? site.meta?.[hit.routeId]?.toc?.[Number(m[1])]?.id : undefined;
     navigate(hit.path + (anchor ? `#${anchor}` : ''));
     setOpen(false);
+    reset(); // không để query/hits cũ còn lại — focus lại input sau khi điều hướng không được bật lại danh sách cũ.
     if (anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView?.());
   };
 
@@ -100,8 +131,12 @@ export function SearchBox() {
     }
   };
 
+  // aria-live: CHỈ thông báo trạng thái "ổn định" (đã xong 1 vòng tìm) — không announce 'loading'
+  // mỗi keystroke (review #2: mỗi phím gõ ghi vào live region rất ồn cho screen reader). Trạng
+  // thái 'results' phải tự thông báo SỐ LƯỢNG — trước đây 'results' không có message nào, người
+  // dùng screen reader nghe "Đang tìm…" rồi im lặng, không biết có bao nhiêu kết quả.
   const message =
-    status === 'loading' ? 'Đang tìm…' :
+    status === 'results' ? `${visible.length} kết quả` :
     status === 'empty' ? 'Không tìm thấy kết quả' :
     status === 'error' ? 'Không tìm được — thử lại sau' : '';
 
@@ -115,11 +150,14 @@ export function SearchBox() {
     >
       <input
         ref={inputRef}
-        type="search"
+        // `type="text"` (không phải "search"): APG combobox pattern dùng input text thuần —
+        // `type="search"` thêm role ngầm `searchbox` xung đột với `role="combobox"` tường minh
+        // và nút "clear" gốc của trình duyệt không đi qua React event, dễ gây lệch state (review Q3).
+        type="text"
         role="combobox"
         aria-label="Tìm kiếm"
         aria-expanded={expanded}
-        aria-controls={`${uid}-list`}
+        {...(hasListbox ? { 'aria-controls': `${uid}-list` } : {})}
         aria-autocomplete="list"
         {...(expanded && active >= 0 ? { 'aria-activedescendant': optionId(active) } : {})}
         autoComplete="off"
@@ -130,9 +168,18 @@ export function SearchBox() {
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
       />
-      <div aria-live="polite" className={styles.status!}>{expanded ? message : ''}</div>
-      {expanded && status === 'results' ? (
-        <div id={`${uid}-list`} role="listbox" aria-label="Kết quả tìm kiếm" className={styles.list!} onMouseDown={(e) => e.preventDefault()}>
+      <div aria-live="polite" className={styles.status!}>{open ? message : ''}</div>
+      {expanded ? (
+        <div
+          ref={listRef}
+          id={`${uid}-list`}
+          role="listbox"
+          aria-label="Kết quả tìm kiếm"
+          className={styles.list!}
+          // `onPointerDown` (không chỉ `onMouseDown`): bao cả chuột/bút/chạm, ngăn blur chạy
+          // trước `onClick` của option khi người dùng chạm bằng ngón tay (review Q4).
+          onPointerDown={(e) => e.preventDefault()}
+        >
           {groups.map((g) => (
             <div key={g.pageKey} role="group" aria-labelledby={`${uid}-g-${g.pageKey}`}>
               <div id={`${uid}-g-${g.pageKey}`} className={styles.group!}>{g.pageTitle}</div>

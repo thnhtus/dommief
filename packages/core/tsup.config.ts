@@ -1,10 +1,15 @@
 import { defineConfig } from 'tsup';
 export default defineConfig([
   {
-    // search-worker riêng: phải là một entry độc lập (không gộp vào theme-api), vì
-    // `new Worker(new URL('dommief/search-worker', import.meta.url), {type:'module'})` cần một
-    // file JS đứng riêng để Worker fetch (trình duyệt load worker bằng URL, không phải import).
-    entry: { index: 'src/index.ts', 'theme-api': 'src/theme-api.tsx', 'search-worker': 'src/client/search-worker.ts' },
+    // KHÔNG có entry 'search-worker' ở đây: `theme-api.tsx` dùng
+    // `new Worker(new URL('./client/search-worker.ts', import.meta.url))` — Vite worker plugin
+    // (khi site thật build) tự bundle TRỰC TIẾP từ file nguồn này thành asset riêng, KHÔNG
+    // đi qua `dist/search-worker.js` của package này. Một entry 'search-worker' + export
+    // `./search-worker` trong package.json từng tồn tại dựa trên đường dẫn cũ
+    // (`new Worker(new URL('dommief/search-worker', ...))`) đã bị đổi sang đường dẫn tương
+    // đối ở trên — không ai import specifier đó nữa (giữ lại là build artifact chết, không
+    // test, dễ lệch khỏi code thật), nên đã gỡ.
+    entry: { index: 'src/index.ts', 'theme-api': 'src/theme-api.tsx' },
     format: ['esm'],
     dts: true,
     clean: true,
