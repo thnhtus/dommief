@@ -11,6 +11,7 @@ export interface SiteModuleConfig {
   locales: SiteData['locales'];
   themeConfig?: Record<string, unknown> | undefined;
   frontmatter?: FrontmatterMap | undefined;
+  search?: { enabled: boolean } | undefined;
 }
 
 /** `meta[id]` cho mỗi route: do caller tính sẵn (sitePlugin dùng `extractPageSummary`, #12 — một nguồn sự thật, không đọc `.md?meta` lần nữa qua import). */
@@ -33,6 +34,7 @@ export function createSiteModule({ routes, config, meta }: { routes: Route[]; co
     locales: config.locales,
     themeConfig: config.themeConfig ?? {},
     routes: routesById,
+    search: config.search ?? { enabled: true },
   };
   const json = JSON.stringify(head);
   return `export default {

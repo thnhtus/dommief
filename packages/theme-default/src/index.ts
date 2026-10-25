@@ -6,6 +6,7 @@ export { Footer } from './slots/Footer.js';
 export { NotFound404 } from './slots/NotFound.js';
 export { NotFound404 as NotFound } from './slots/NotFound.js';
 export { ColorSwitch } from './slots/ColorSwitch.js';
+export { SearchBox } from './slots/SearchBox.js';
 export { GlobalLayout } from './layouts/GlobalLayout.js';
 export { DocLayout } from './layouts/DocLayout.js';
 export { DemoLayout } from './layouts/DemoLayout.js';

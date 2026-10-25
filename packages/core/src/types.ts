@@ -47,6 +47,8 @@ export interface SiteData {
   meta: Record<string, PageSummary>;
   nav: Record<string, NavItem[]>;
   sidebar: Record<string, SidebarGroup[]>;
+  /** DM-803: theme ẩn ô tìm kiếm khi `false`. Optional để site data cũ/tay vẫn hợp lệ (mặc định bật). */
+  search?: { enabled: boolean };
 }
 
 /** Phần config mà tầng route cần — ResolvedConfig (DM-201) thoả cấu trúc này. */

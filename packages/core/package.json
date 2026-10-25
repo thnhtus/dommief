@@ -30,7 +30,8 @@
     "src/client",
     "src/types.ts",
     "src/routesModule.ts",
-    "src/theme-api.tsx"
+    "src/theme-api.tsx",
+    "src/search-config.ts"
   ],
   "scripts": {
     "build": "tsup",

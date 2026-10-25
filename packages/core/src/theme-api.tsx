@@ -11,6 +11,8 @@ export type { ColorValue, PrefersColorValue } from './prefers-color.js';
 export { ClientOnly } from './client/ClientOnly.js';
 export type { ClientOnlyProps } from './client/ClientOnly.js';
 export type { SearchHit, SearchManifest, SearchResult } from './client/search-core.js';
+export { SearchClient } from './client/search-client.js';
+export type { SearchPort } from './client/search-client.js';
 
 export const SiteContext = createContext<SiteData | null>(null);
 
@@ -42,6 +44,26 @@ export function useRouteMeta(): PageSummary {
   return (route ? site.meta?.[route.id] : undefined) ?? { frontmatter: {} };
 }
 
+/** Cách tạo SearchClient — mặc định spawn Web Worker thật. Test (jsdom không có `Worker`) và theme
+ * tuỳ biến tiêm qua `SearchRuntimeProvider` một client dùng port giả nối thẳng SearchCore; nếu
+ * không có lối tiêm này, mọi test UI "gõ -> thấy kết quả" sẽ xanh giả (search luôn trả []). */
+export interface SearchRuntime { createClient: () => Promise<SearchClient | null> }
+export const SearchRuntimeContext = createContext<SearchRuntime | null>(null);
+export function SearchRuntimeProvider({ value, children }: { value: SearchRuntime; children?: ReactNode }) {
+  return <SearchRuntimeContext.Provider value={value}>{children}</SearchRuntimeContext.Provider>;
+}
+
+async function createWorkerClient(): Promise<SearchClient | null> {
+  if (typeof window === 'undefined' || typeof Worker === 'undefined') return null; // SSR.
+  const manifestMod = (await import('virtual:dommief/search-index')) as { default: SearchManifest };
+  if (!Object.keys(manifestMod.default.locales).length) return null; // search.enabled === false.
+  // Đường dẫn TƯƠNG ĐỐI tới file NGUỒN: theme-api luôn được alias về src (paths.ts) nên Vite worker
+  // plugin thấy pattern `new Worker(new URL('./x', import.meta.url))` và bundle worker (kèm
+  // minisearch) thành asset riêng, đi qua `base`.
+  const worker = new Worker(new URL('./client/search-worker.ts', import.meta.url), { type: 'module' });
+  return new SearchClient(wrapRealWorker(worker), manifestMod.default);
+}
+
 export interface UseSiteSearchResult {
   /** `error`: thông điệp an toàn (DM-802 fail-open) — UI hiển thị "không tìm được" thay vì
    * coi nhầm là "không có kết quả". `superseded`: query này đã bị một query mới hơn thay
@@ -63,6 +85,7 @@ export function useSiteSearch(): UseSiteSearchResult {
   const site = useSiteData();
   const { pathname } = useLocation();
   const locale = localeIdFor(site, pathname);
+  const runtime = useContext(SearchRuntimeContext);
   const clientPromiseRef = useRef<Promise<SearchClient | null> | null>(null);
   const unmountedRef = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -79,18 +102,16 @@ export function useSiteSearch(): UseSiteSearchResult {
   const ensureClient = useMemo(() => {
     return (): Promise<SearchClient | null> => {
       if (clientPromiseRef.current) return clientPromiseRef.current;
-      if (typeof window === 'undefined' || typeof Worker === 'undefined') { clientPromiseRef.current = Promise.resolve(null); return clientPromiseRef.current; } // SSR.
       setLoading(true);
       const promise = (async () => {
         try {
-          const manifestMod = (await import('virtual:dommief/search-index')) as { default: SearchManifest };
-          if (!Object.keys(manifestMod.default.locales).length) return null; // search.enabled === false.
-          const worker = new Worker(new URL('dommief/search-worker', import.meta.url), { type: 'module' });
-          const client = new SearchClient(wrapRealWorker(worker), manifestMod.default);
-          // Component đã unmount trong lúc `await import()` đang chạy: cleanup đã chạy xong trước
-          // khi worker được tạo — huỷ ngay, đừng để worker sống sót sau unmount (review #2).
-          if (unmountedRef.current) { client.dispose(); return null; }
+          const client = await (runtime?.createClient ?? createWorkerClient)();
+          // Component đã unmount trong lúc tạo client: cleanup đã chạy xong trước khi client có —
+          // huỷ ngay, đừng để worker sống sót sau unmount (review #2).
+          if (client && unmountedRef.current) { client.dispose(); return null; }
           return client;
+        } catch {
+          return null; // fail open: không tạo được worker -> search trả rỗng, không crash UI.
         } finally {
           setLoading(false);
         }
@@ -98,10 +119,11 @@ export function useSiteSearch(): UseSiteSearchResult {
       clientPromiseRef.current = promise;
       return promise;
     };
-  }, []);
+  }, [runtime]);
 
   const search = useMemo(() => {
-    return async (query: string) => {
+    return async (query: string): Promise<SearchResult> => {
+      if (!query.trim()) return { hits: [] }; // (c) rỗng: không tạo worker, không fetch.
       const client = await ensureClient();
       if (!client) return { hits: [] };
       return client.search(query, locale);
