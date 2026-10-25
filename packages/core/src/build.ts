@@ -173,7 +173,12 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   // (c) SSG: chèn markup vào index.html của Vite (script + css) thay vì ghi markup trần.
   // Phải đọc template TRƯỚC vòng lặp: route "/" ghi đè đúng file này.
   const templatePath = path.join(distDir, 'index.html');
-  const template = fs.readFileSync(templatePath, 'utf8');
+  // Thiếu `<meta viewport>` thì mobile render như desktop 980px (e2e Pixel 7 bắt được) — mặc định chèn
+  // cho mọi dự án; người dùng đã tự khai (kể cả giá trị khác) thì giữ nguyên.
+  const rawTemplate = fs.readFileSync(templatePath, 'utf8');
+  const template = /<meta[^>]+name=["']viewport["']/i.test(rawTemplate)
+    ? rawTemplate
+    : rawTemplate.replace(/<\/head>/i, '  <meta name="viewport" content="width=device-width, initial-scale=1">\n</head>');
   if (!ROOT_PLACEHOLDER.test(template)) {
     throw new DommiefError('index.html không có <div id="root"></div> để chèn nội dung prerender', { file: templatePath, code: 'ssg_no_root' });
   }
