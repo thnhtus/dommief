@@ -10,6 +10,7 @@ import { dommiefSitePlugin } from './sitePlugin.js';
 import { createState } from './state.js';
 import { winPath } from '../utils/path.js';
 import { buildAliasChain } from '../theme/resolver.js';
+import { computePipelineHash, computeRoutesHash, type TransformCache } from '../cache.js';
 // Import từ prefers-color.js (KHÔNG phải theme-api.js): file này chạy trong tiến trình
 // Node của CLI (build-time), không qua bundle SSR của Vite. Import trực tiếp theme-api.tsx
 // (có JSX + hook 'react') từng nạp 'react' vào tiến trình CLI qua đường khác với bản mà
@@ -23,6 +24,8 @@ export interface DommiefPluginOptions {
   config?: ResolvedConfig;
   /** Plugin host dùng chung với CLI (để `onBuildEnd` chạy trên đúng host đã đăng ký hook). */
   host?: PluginHookHost;
+  /** Chỉ `dommief build` truyền vào (DM-406); dev chạy trong bộ nhớ Vite nên không cache. */
+  cache?: TransformCache;
 }
 
 // Plugin tổng hợp: transform md + ?meta + entry ảo, và uỷ thác virtual:dommief/routes
@@ -78,7 +81,26 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         const isMeta = id.endsWith('?meta');
         const file = isMeta ? id.slice(0, -'?meta'.length) : id;
         const code = await fs.promises.readFile(file, 'utf8');
-        const { code: out, meta, warnings, apiSrcFiles } = await transformMarkdown(code, file, { hooks: state.host(), byFile: state.getTable().byFile, base: state.config().base, code: state.config().markdown });
+        const transformOpts = { hooks: state.host(), byFile: state.getTable().byFile, base: state.config().base, code: state.config().markdown };
+        let out: string; let meta: Awaited<ReturnType<typeof transformMarkdown>>['meta']; let warnings: string[]; let apiSrcFiles: string[] = [];
+        if (opts.cache) {
+          const host = state.host();
+          const input = {
+            md: code, file, base: transformOpts.base,
+            routesHash: computeRoutesHash(transformOpts.byFile),
+            pipelineHash: computePipelineHash({ code: transformOpts.code, plugins: [...host.collectRemarkPlugins(), ...host.collectRehypePlugins()] }),
+          };
+          // `<API src>` đọc file nguồn khác .md: nội dung phụ thuộc file đó, không nằm trong key => không cache trang này.
+          const cacheable = !/<API[\s/>]/.test(code);
+          const hit = await opts.cache.getOrCompute(file, input, async () => {
+            const r = await transformMarkdown(code, file, transformOpts);
+            return { code: r.code, meta: r.meta, warnings: r.warnings };
+          }, cacheable);
+          ({ code: out, meta, warnings } = hit);
+        } else {
+          const r = await transformMarkdown(code, file, transformOpts);
+          ({ code: out, meta, warnings, apiSrcFiles } = r);
+        }
         for (const w of warnings) this.warn(w);
         for (const apiFile of apiSrcFiles) this.addWatchFile(apiFile); // <API src> đọc file khác .md (#17)
         if (isMeta) {
