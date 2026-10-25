@@ -1,7 +1,7 @@
 import React from 'react';
-import { Sidebar } from '../Sidebar.js';
-import { Toc } from '../Toc.js';
-import { Content } from '../Content.js';
+import { Sidebar } from '../slots/Sidebar.js';
+import { Toc } from '../slots/Toc.js';
+import { Content } from '../slots/Content.js';
 
 export function DocLayout({ children }: { children?: React.ReactNode }) {
   return (

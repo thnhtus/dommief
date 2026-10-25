@@ -3,7 +3,7 @@
 exports[`markdown fixtures > transforms f1.md 1`] = `
 "import React from 'react';
 export default function Content(){ return (
-<><h1 id="heading-1"><a href="#heading-1" className="anchor" />{"Heading 1"}</h1>{"\\n"}<p>{"Paragraph text for fixture 1."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 1;\\n"}</code></pre></>
+<><h1 id="heading-1"><a href="#heading-1" className="dommief-heading-anchor" tabIndex="-1" />{"Heading 1"}</h1>{"\\n"}<p>{"Paragraph text for fixture 1."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 1;\\n"}</code></pre></>
 ); }
 export const meta = {"frontmatter":{"title":"Fixture 1","description":"Paragraph text for fixture 1."},"toc":[{"id":"heading-1","depth":1,"title":"Heading 1"}]};
 "
@@ -12,7 +12,7 @@ export const meta = {"frontmatter":{"title":"Fixture 1","description":"Paragraph
 exports[`markdown fixtures > transforms f2.md 1`] = `
 "import React from 'react';
 export default function Content(){ return (
-<><h1 id="heading-2"><a href="#heading-2" className="anchor" />{"Heading 2"}</h1>{"\\n"}<p>{"Paragraph text for fixture 2."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 2;\\n"}</code></pre></>
+<><h1 id="heading-2"><a href="#heading-2" className="dommief-heading-anchor" tabIndex="-1" />{"Heading 2"}</h1>{"\\n"}<p>{"Paragraph text for fixture 2."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 2;\\n"}</code></pre></>
 ); }
 export const meta = {"frontmatter":{"title":"Fixture 2","description":"Paragraph text for fixture 2."},"toc":[{"id":"heading-2","depth":1,"title":"Heading 2"}]};
 "
@@ -21,7 +21,7 @@ export const meta = {"frontmatter":{"title":"Fixture 2","description":"Paragraph
 exports[`markdown fixtures > transforms f3.md 1`] = `
 "import React from 'react';
 export default function Content(){ return (
-<><h1 id="heading-3"><a href="#heading-3" className="anchor" />{"Heading 3"}</h1>{"\\n"}<p>{"Paragraph text for fixture 3."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 3;\\n"}</code></pre></>
+<><h1 id="heading-3"><a href="#heading-3" className="dommief-heading-anchor" tabIndex="-1" />{"Heading 3"}</h1>{"\\n"}<p>{"Paragraph text for fixture 3."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 3;\\n"}</code></pre></>
 ); }
 export const meta = {"frontmatter":{"title":"Fixture 3","description":"Paragraph text for fixture 3."},"toc":[{"id":"heading-3","depth":1,"title":"Heading 3"}]};
 "
@@ -30,7 +30,7 @@ export const meta = {"frontmatter":{"title":"Fixture 3","description":"Paragraph
 exports[`markdown fixtures > transforms f4.md 1`] = `
 "import React from 'react';
 export default function Content(){ return (
-<><h1 id="heading-4"><a href="#heading-4" className="anchor" />{"Heading 4"}</h1>{"\\n"}<p>{"Paragraph text for fixture 4."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 4;\\n"}</code></pre></>
+<><h1 id="heading-4"><a href="#heading-4" className="dommief-heading-anchor" tabIndex="-1" />{"Heading 4"}</h1>{"\\n"}<p>{"Paragraph text for fixture 4."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 4;\\n"}</code></pre></>
 ); }
 export const meta = {"frontmatter":{"title":"Fixture 4","description":"Paragraph text for fixture 4."},"toc":[{"id":"heading-4","depth":1,"title":"Heading 4"}]};
 "
@@ -39,7 +39,7 @@ export const meta = {"frontmatter":{"title":"Fixture 4","description":"Paragraph
 exports[`markdown fixtures > transforms f5.md 1`] = `
 "import React from 'react';
 export default function Content(){ return (
-<><h1 id="heading-5"><a href="#heading-5" className="anchor" />{"Heading 5"}</h1>{"\\n"}<p>{"Paragraph text for fixture 5."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 5;\\n"}</code></pre></>
+<><h1 id="heading-5"><a href="#heading-5" className="dommief-heading-anchor" tabIndex="-1" />{"Heading 5"}</h1>{"\\n"}<p>{"Paragraph text for fixture 5."}</p>{"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"}<table><thead><tr><th>{"col"}</th><th>{"val"}</th></tr></thead><tbody><tr><td>{"a"}</td><td>{"b"}</td></tr></tbody></table>{"\\n"}<pre><code className="language-ts">{"const n = 5;\\n"}</code></pre></>
 ); }
 export const meta = {"frontmatter":{"title":"Fixture 5","description":"Paragraph text for fixture 5."},"toc":[{"id":"heading-5","depth":1,"title":"Heading 5"}]};
 "

@@ -4,7 +4,9 @@ import { Suspense, type ComponentType } from 'react';
 import { Routes, Route } from 'react-router';
 import virtualRoutes from 'virtual:dommief/routes';
 import type { RouteModule } from '../routesModule.js';
-import { NotFound } from './NotFound.js';
+import { GlobalLayout } from 'dommief/theme/layouts/GlobalLayout';
+import { DocLayout } from 'dommief/theme/layouts/DocLayout';
+import { NotFound404 as NotFound } from 'dommief/theme/slots/NotFound';
 
 /** Fallback rỗng (không spinner — tránh nháy). Phase 5 theme thay bằng slot. */
 export function RouteLoading() {
@@ -18,24 +20,27 @@ export function RouteLoading() {
 export function createAppRoutes(routes: RouteModule[]) {
   return function AppRoutes() {
     return (
-      <Routes>
-        {routes.map((r) => {
-          // SAFETY: RouteModule.component là React.LazyExoticComponent (CONTRACTS §5); typed `unknown` vì repo không có @types/react.
-          const Page = r.component as ComponentType;
-          return (
-            <Route
-              key={r.id}
-              path={r.path}
-              element={
-                <Suspense fallback={<RouteLoading />}>
-                  <Page />
-                </Suspense>
-              }
-            />
-          );
-        })}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+            <GlobalLayout>
+                <Routes>
+                    {routes.map((r) => {
+                        const Page = r.component as ComponentType;
+                        return (
+                            <Route
+                                key={r.id}
+                                path={r.path}
+                                element={
+                                    <Suspense fallback={<RouteLoading />}>
+                                        <DocLayout>
+                                            <Page />
+                                        </DocLayout>
+                                    </Suspense>
+                                }
+                            />
+                        );
+                    })}
+                    <Route path="*" element={<NotFound />} />
+                </Routes>
+            </GlobalLayout>
     );
   };
 }

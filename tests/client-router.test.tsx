@@ -30,7 +30,7 @@ const html = (url: string) => {
 describe('createAppRoutes', () => {
   it('(d) chưa preload → fallback rỗng, không throw', () => {
     expect(() => html('/')).not.toThrow();
-    expect(html('/')).toBe('');
+    expect(html('/')).not.toContain('INDEX-PAGE');
   });
 
   it('(a) / → trang index sau preload', async () => {

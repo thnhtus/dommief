@@ -1,6 +1,6 @@
 import React from 'react';
-import { Navbar } from '../Navbar.js';
-import { Footer } from '../Footer.js';
+import { Navbar } from '../slots/Navbar.js';
+import { Footer } from '../slots/Footer.js';
 
 export function GlobalLayout({ children }: { children?: React.ReactNode }) {
   return (

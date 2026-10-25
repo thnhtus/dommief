@@ -2,10 +2,13 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "baseUrl": ".",
     "types": ["node"],
     "paths": {
       "dommief": ["./packages/core/src/index.ts"],
       "dommief/theme-api": ["./packages/core/src/theme-api.tsx"],
+      "dommief/theme": ["./packages/theme-default/src/index.ts"],
+      "dommief/theme/*": ["./packages/theme-default/src/*"],
       "dommief/client": ["./packages/core/src/client/index.tsx"]
     }
   },

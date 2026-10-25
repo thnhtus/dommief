@@ -3,13 +3,15 @@ export class DommiefError extends Error {
   line?: number | undefined;
   col?: number | undefined;
   code?: string | undefined;
-  constructor(message: string, opts: { file?: string; line?: number; col?: number; code?: string } = {}) {
+  layout?: string | undefined;
+  constructor(message: string, opts: { file?: string; line?: number; col?: number; code?: string; layout?: string } = {}) {
     super(message);
     this.name = 'DommiefError';
     this.file = opts.file ?? '';
     this.line = opts.line;
     this.col = opts.col;
     this.code = opts.code;
+    this.layout = opts.layout;
   }
   format(): string {
     const loc = this.line != null ? `:${this.line}${this.col != null ? ':' + this.col : ''}` : '';

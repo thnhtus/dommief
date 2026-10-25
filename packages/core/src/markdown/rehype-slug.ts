@@ -33,7 +33,7 @@ export function rehypeAutolinkHeadings() {
   return (tree: any) => {
     visit(tree, 'element', (node: any) => {
       if (/^h[1-6]$/.test(node.tagName) && node.properties?.id) {
-        const anchor = { type: 'element', tagName: 'a', properties: { href: '#' + node.properties.id, className: ['anchor'] }, children: [] };
+        const anchor = { type: 'element', tagName: 'a', properties: { href: '#' + node.properties.id, className: ['dommief-heading-anchor'], tabIndex: -1 }, children: [] };
         node.children = [anchor, ...node.children];
       }
     });

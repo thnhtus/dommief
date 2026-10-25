@@ -9,6 +9,7 @@ import { dommiefRoutesPlugin } from './routesPlugin.js';
 import { dommiefSitePlugin } from './sitePlugin.js';
 import { createState } from './state.js';
 import { winPath } from '../utils/path.js';
+import { buildAliasChain } from '../theme/resolver.js';
 
 export interface DommiefPluginOptions {
   root: string;
@@ -36,11 +37,10 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         const config = await loadConfig(opts.root);
         loaded = { config, host: createPluginHost(config.plugins ?? []) };
       }
+      const aliases = buildAliasChain(opts.root, loaded.config);
       return {
         base: loaded.config.base,
-        // một bản react/router duy nhất giữa trang md (nằm trong dự án) và client/ của dommief
-        resolve: { dedupe: ['react', 'react-dom', 'react-router'] },
-        // client/*.tsx của dommief là source TS: SSR phải bundle nó, không được externalize.
+        resolve: { dedupe: ['react', 'react-dom', 'react-router'], alias: aliases },
         ssr: { noExternal: ['dommief'] },
       };
     },
@@ -92,6 +92,14 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       }
       return out;
     } },
+    configureServer(server) {
+      const update = () => {
+        const aliases = buildAliasChain(opts.root, loaded!.config);
+        server.config.resolve.alias = { ...(server.config.resolve.alias as any), ...aliases };
+      };
+      server.watcher.on('add', (f) => { if (String(f).includes('.dommief') || String(f).includes('theme-default')) update(); });
+      server.watcher.on('unlink', (f) => { if (String(f).includes('.dommief') || String(f).includes('theme-default')) update(); });
+    },
   };
   return [markdownPlugin, dommiefRoutesPlugin(state), dommiefSitePlugin(state)] as Plugin[];
 }
