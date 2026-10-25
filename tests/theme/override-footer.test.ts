@@ -36,7 +36,7 @@ describe('override Footer qua .dommief/theme (DM-511)', () => {
 
   it('không fork cả theme: Navbar/Sidebar vẫn render (default)', () => {
     const html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
-    expect(html).toContain('<nav>');
+    expect(html).toContain('aria-label="Main"');
     expect(html).toContain('<aside>');
   });
 });

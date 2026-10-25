@@ -5,9 +5,12 @@ import React from 'react';
 import { Navbar } from 'dommief/theme/slots/Navbar';
 import { Footer } from 'dommief/theme/slots/Footer';
 
+// THEME-API §6 (bắt buộc): skip-link phải là phần tử đầu tiên trong `<body>`; đích là
+// `#main` do `Content` (slots/Content.tsx) render.
 export function GlobalLayout({ children }: { children?: React.ReactNode }) {
   return (
     <div>
+      <a className="dm-skip" href="#main">Bỏ qua điều hướng</a>
       <Navbar />
       {children}
       <Footer />

@@ -1,14 +1,29 @@
 import React from 'react';
-import { Link } from 'react-router';
-import { useNavData } from 'dommief/theme-api';
+import { Link, useLocation } from 'react-router';
+import { useNavData, useSiteData } from 'dommief/theme-api';
+import { ColorSwitch } from 'dommief/theme/slots/ColorSwitch';
 
+// THEME-API §5 bảng slot: ColorSwitch render trong Navbar khi `themeConfig.prefersColor.switch
+// !== false` (mặc định true). §6: landmark `<nav aria-label>` riêng (không trùng Sidebar/Toc);
+// item active có `aria-current="page"`.
 export function Navbar() {
   const nav = useNavData();
+  const { pathname } = useLocation();
+  const site = useSiteData();
+  const themeConfig = site.themeConfig as { prefersColor?: { switch?: boolean } } | undefined;
+  const showColorSwitch = themeConfig?.prefersColor?.switch !== false;
   return (
-    <nav>
-      {nav.map((item) => (
-        <Link key={item.activePath} to={item.link ?? item.activePath}>{item.title}</Link>
-      ))}
+    <nav aria-label="Main">
+      {nav.map((item) => {
+        const to = item.link ?? item.activePath;
+        const active = pathname === to;
+        return (
+          <Link key={item.activePath} to={to} aria-current={active ? 'page' : undefined}>
+            {item.title}
+          </Link>
+        );
+      })}
+      {showColorSwitch ? <ColorSwitch /> : null}
     </nav>
   );
 }

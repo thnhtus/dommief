@@ -10,6 +10,12 @@ import { dommiefSitePlugin } from './sitePlugin.js';
 import { createState } from './state.js';
 import { winPath } from '../utils/path.js';
 import { buildAliasChain } from '../theme/resolver.js';
+// Import từ prefers-color.js (KHÔNG phải theme-api.js): file này chạy trong tiến trình
+// Node của CLI (build-time), không qua bundle SSR của Vite. Import trực tiếp theme-api.tsx
+// (có JSX + hook 'react') từng nạp 'react' vào tiến trình CLI qua đường khác với bản mà
+// server.mjs dùng để renderToPipeableStream → 2 dispatcher react khác nhau →
+// `TypeError: dispatcher.getOwner is not a function` (đã bắt trực tiếp, không phải suy đoán).
+import { PREFERS_COLOR_ATTR, PREFERS_COLOR_BOOT_SCRIPT, resolveConfiguredColor, type PrefersColorValue } from '../prefers-color.js';
 
 export interface DommiefPluginOptions {
   root: string;
@@ -92,6 +98,18 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       if (!/<title>/.test(out)) out = out.replace('<head>', `<head><title>${title}</title>`);
       const tags = state.host().collectHtmlHeadTags();
       if (tags.length) out = out.replace('</head>', tags.join('\n') + '</head>');
+      // THEME-API §9.2 + Amendment #1: inline script < 1KB, KHÔNG `async`/`defer`, chạy trước
+      // paint để không nháy sáng rồi sang tối. Nếu `themeConfig.prefersColor.default` khác
+      // 'auto', SSR ghi thẳng `data-prefers-color` vào `<html>` để trang đúng màu ngay cả khi
+      // tắt JS (gate Phase 4) — inline script chỉ GHI ĐÈ khi localStorage có lựa chọn khác.
+      const themeConfig = state.config().themeConfig as { prefersColor?: { default?: PrefersColorValue } } | undefined;
+      const configuredColor = resolveConfiguredColor(themeConfig?.prefersColor?.default);
+      if (configuredColor && !/data-prefers-color=/.test(out)) {
+        out = out.replace(/<html(\s|>)/, `<html ${PREFERS_COLOR_ATTR}="${configuredColor}"$1`);
+      }
+      if (!out.includes(PREFERS_COLOR_BOOT_SCRIPT)) {
+        out = out.replace('</head>', `<script>${PREFERS_COLOR_BOOT_SCRIPT}</script></head>`);
+      }
       if (!out.includes('virtual:dommief/entry')) {
         out = out.replace('</body>', `<script type="module" src="/virtual:dommief/entry"></script></body>`);
       }
