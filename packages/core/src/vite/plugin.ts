@@ -19,6 +19,8 @@ import { computePipelineHash, computeRoutesHash, type TransformCache } from '../
 // `TypeError: dispatcher.getOwner is not a function` (đã bắt trực tiếp, không phải suy đoán).
 import { PREFERS_COLOR_ATTR, PREFERS_COLOR_BOOT_SCRIPT, resolveConfiguredColor, type PrefersColorValue } from '../prefers-color.js';
 
+const demoRegistry = new Map<string, string>();
+
 export interface DommiefPluginOptions {
   root: string;
   /** Đã resolve sẵn (CLI): dùng lại, không đọc config lần nữa. */
@@ -69,6 +71,7 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       if (id === 'dommief/client') return resolveClientFile('index.tsx');
       const bare = id.replace(/^\//, '');
       if (bare === 'virtual:dommief/entry') return '\0virtual:dommief/entry';
+      if (bare.startsWith('virtual:dommief-demo/')) return '\0' + bare;
       if (bare === 'virtual:dommief/routes' || bare === 'virtual:dommief/site') return null;
       if (id.endsWith('.md') || id.endsWith('.md?meta')) {
         const base = importer ? path.dirname(importer.replace(/\?meta$/, '')) : process.cwd();
@@ -81,6 +84,11 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       return null;
     },
     async load(id) {
+      if (id.startsWith('\0virtual:dommief-demo/')) {
+        const demoId = id.slice('\0virtual:dommief-demo/'.length);
+        const source = demoRegistry.get(demoId) ?? 'export default function Demo(){ return null; }';
+        return { code: source, map: null, moduleType: 'jsx' };
+      }
       if (id === '\0virtual:dommief/entry') {
         return { code: `import ${JSON.stringify(resolveClientFile('entry-client.tsx'))};`, map: null, moduleType: 'js' };
       }
@@ -101,12 +109,17 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
           const cacheable = !/<API[\s/>]/.test(code);
           const hit = await opts.cache.getOrCompute(file, input, async () => {
             const r = await transformMarkdown(code, file, transformOpts);
-            return { code: r.code, meta: r.meta, warnings: r.warnings };
+            return { code: r.code, meta: r.meta, warnings: r.warnings, demos: r.demos };
           }, cacheable);
+          let hitDemos: { id: string; source: string }[] = [];
           ({ code: out, meta, warnings } = hit);
+          hitDemos = (hit as any).demos ?? [];
+          for (const d of hitDemos as any) { demoRegistry.set(d.id, d.source); if (d.src) this.addWatchFile(path.resolve(path.dirname(file), d.src)); }
         } else {
           const r = await transformMarkdown(code, file, transformOpts);
           ({ code: out, meta, warnings, apiSrcFiles } = r);
+          const nonCacheDemos = (r as any).demos ?? [];
+          for (const d of nonCacheDemos as any) { demoRegistry.set(d.id, d.source); if (d.src) this.addWatchFile(path.resolve(path.dirname(file), d.src)); }
         }
         for (const w of warnings) this.warn(w);
         for (const apiFile of apiSrcFiles) this.addWatchFile(apiFile); // <API src> đọc file khác .md (#17)

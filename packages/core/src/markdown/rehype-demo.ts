@@ -18,6 +18,7 @@ export function remarkDemoMeta() {
 export interface DemoEntry {
   id: string;
   source: string;
+  src?: string;
 }
 
 function demoId(source: string, file: string): string {
@@ -43,7 +44,7 @@ export function rehypeDemo() {
         const src = String(node.properties.src);
         const source = codeText(node).trim();
         const id = demoId(source || src, filePath);
-        demos.push({ id, source });
+        demos.push({ id, source, src });
         parent.children[index] = {
           type: 'element',
           tagName: 'DumiDemo',

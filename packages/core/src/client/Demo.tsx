@@ -1,17 +1,46 @@
-import React, { useState } from 'react';
+import React, { Component, useState } from 'react';
+import { getDemo } from './DemoRegistry.js';
 
 export interface DemoProps {
-  id?: string;
+  id: string;
   source?: string;
   src?: string;
 }
 
+class DemoErrorBoundary extends Component<{ children: React.ReactNode; fallback: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
 export function DumiDemo({ id, source }: DemoProps) {
   const [showCode, setShowCode] = useState(false);
+  const demo = getDemo(id);
+
+  const codeFallback = source ? (
+    <pre className="dommief-demo__code">
+      <code>{source}</code>
+    </pre>
+  ) : null;
+
   return (
     <div className="dommief-demo" data-demo-id={id}>
       <div className="dommief-demo__preview">
-        {source ? <pre><code>{source}</code></pre> : null}
+        {demo ? (
+          <DemoErrorBoundary fallback={codeFallback}>
+            {React.createElement(demo)}
+          </DemoErrorBoundary>
+        ) : (
+          codeFallback
+        )}
       </div>
       <div className="dommief-demo__toolbar">
         <button type="button" onClick={() => setShowCode((v) => !v)}>

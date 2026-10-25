@@ -41,7 +41,7 @@ export interface TransformMarkdownOptions {
   /** `config.markdown` (shiki + lineNumbers), DM-706. */
   code?: RehypeCodeOptions;
 }
-export async function transformMarkdown(source: string, file: string, opts: TransformMarkdownOptions = {}): Promise<{ code: string; meta: PageMeta; warnings: string[]; apiSrcFiles: string[] }> {
+export async function transformMarkdown(source: string, file: string, opts: TransformMarkdownOptions = {}): Promise<{ code: string; meta: PageMeta; warnings: string[]; apiSrcFiles: string[]; demos: { id: string; source: string }[] }> {
   const host = opts.hooks ?? (opts.plugins ? createPluginHost(opts.plugins) : undefined);
   const remarkPlugins = [...(opts.remarkPlugins ?? []), ...(host ? host.collectRemarkPlugins() : [])];
   const rehypePlugins = [...(opts.rehypePlugins ?? []), ...(host ? host.collectRehypePlugins() : [])];
@@ -90,6 +90,7 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
     toc: (vfile.data?.toc ?? []) as TocItem[],
     texts: (vfile.data?.texts ?? []) as TextFragment[],
   };
-  const code = toModule(hast, meta, (vfile.data?.images ?? []) as { name: string; specifier: string }[]);
-  return { code, meta, warnings: (vfile.data?.warnings ?? []) as string[], apiSrcFiles };
+  const demos = (vfile.data?.demos ?? []) as { id: string; source: string; src?: string }[];
+  const code = toModule(hast, meta, (vfile.data?.images ?? []) as { name: string; specifier: string }[], demos);
+  return { code, meta, warnings: (vfile.data?.warnings ?? []) as string[], apiSrcFiles, demos };
 }
