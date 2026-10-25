@@ -1,13 +1,16 @@
-import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useLocation } from 'react-router';
 import type { NavItem, PageSummary, SidebarGroup, SiteData } from './types.js';
 import { PREFERS_COLOR_ATTR, PREFERS_COLOR_STORAGE_KEY, type ColorValue, type PrefersColorValue } from './prefers-color.js';
+import { SearchClient, wrapRealWorker } from './client/search-client.js';
+import type { SearchHit, SearchManifest } from './client/search-core.js';
 
 export type { SiteData, NavItem, SidebarGroup, TocEntry, PageSummary } from './types.js';
 export { PREFERS_COLOR_ATTR, PREFERS_COLOR_STORAGE_KEY, PREFERS_COLOR_BOOT_SCRIPT, resolveConfiguredColor } from './prefers-color.js';
 export type { ColorValue, PrefersColorValue } from './prefers-color.js';
 export { ClientOnly } from './client/ClientOnly.js';
 export type { ClientOnlyProps } from './client/ClientOnly.js';
+export type { SearchHit, SearchManifest } from './client/search-core.js';
 
 export const SiteContext = createContext<SiteData | null>(null);
 
@@ -37,6 +40,52 @@ export function useRouteMeta(): PageSummary {
   const { pathname } = useLocation();
   const route = Object.values(site.routes ?? {}).find((r) => r.path === pathname);
   return (route ? site.meta?.[route.id] : undefined) ?? { frontmatter: {} };
+}
+
+export interface UseSiteSearchResult {
+  search: (query: string) => Promise<SearchHit[]>;
+  loading: boolean;
+}
+
+/** DM-802/803: Web Worker CHỈ được tạo khi có truy vấn đầu tiên (không tải ở lúc boot trang —
+ * tiêu chí DM-803 #4). SSR không có `Worker`: `search()` trả `[]` thay vì throw — hàm này luôn
+ * được gọi ở event handler phía client (gõ vào ô tìm kiếm), không phải trong render path
+ * nên nhánh SSR thực tế không chạy, nhưng vẫn giữ an toàn nếu ai đó gọi trái quy ước. */
+export function useSiteSearch(): UseSiteSearchResult {
+  const site = useSiteData();
+  const { pathname } = useLocation();
+  const locale = localeIdFor(site, pathname);
+  const clientRef = useRef<SearchClient | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => () => { clientRef.current?.dispose(); clientRef.current = null; }, []);
+
+  const ensureClient = useMemo(() => {
+    return async (): Promise<SearchClient | null> => {
+      if (clientRef.current) return clientRef.current;
+      if (typeof Worker === 'undefined') return null; // SSR / môi trường không có Worker.
+      setLoading(true);
+      try {
+        const manifestMod = (await import('virtual:dommief/search-index')) as { default: SearchManifest };
+        const worker = new Worker(new URL('dommief/search-worker', import.meta.url), { type: 'module' });
+        const client = new SearchClient(wrapRealWorker(worker), manifestMod.default);
+        clientRef.current = client;
+        return client;
+      } finally {
+        setLoading(false);
+      }
+    };
+  }, []);
+
+  const search = useMemo(() => {
+    return async (query: string): Promise<SearchHit[]> => {
+      const client = await ensureClient();
+      if (!client) return [];
+      return client.search(query, locale);
+    };
+  }, [ensureClient, locale]);
+
+  return { search, loading };
 }
 
 export function useNavData(): NavItem[] {

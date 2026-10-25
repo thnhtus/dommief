@@ -1,7 +1,10 @@
 import { defineConfig } from 'tsup';
 export default defineConfig([
   {
-    entry: { index: 'src/index.ts', 'theme-api': 'src/theme-api.tsx' },
+    // search-worker riêng: phải là một entry độc lập (không gộp vào theme-api), vì
+    // `new Worker(new URL('dommief/search-worker', import.meta.url), {type:'module'})` cần một
+    // file JS đứng riêng để Worker fetch (trình duyệt load worker bằng URL, không phải import).
+    entry: { index: 'src/index.ts', 'theme-api': 'src/theme-api.tsx', 'search-worker': 'src/client/search-worker.ts' },
     format: ['esm'],
     dts: true,
     clean: true,

@@ -19,6 +19,10 @@
     "./client": {
       "types": "./src/client/index.tsx",
       "default": "./src/client/index.tsx"
+    },
+    "./search-worker": {
+      "types": "./dist/search-worker.d.ts",
+      "default": "./dist/search-worker.js"
     }
   },
   "files": [
