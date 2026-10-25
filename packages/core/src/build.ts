@@ -12,6 +12,7 @@ import type { Route } from './types.js';
 import { collect, check, formatIssues } from './link-check.js';
 import { TransformCache } from './cache.js';
 import { matchExclude } from './exclude.js';
+import { writeSitemapAndRobots } from './sitemap.js';
 import type { TocItem } from './markdown/index.js';
 
 const ROOT_PLACEHOLDER = /<div id="root"><\/div>/;
@@ -52,6 +53,14 @@ export type Emitter = { name: string; run: (ctx: EmitContext) => void | Promise<
 
 /** Danh sách emitter mặc định; lane sitemap/search đăng ký vào đây. */
 export const emitters: Emitter[] = [];
+
+// DM-708: sitemap/robots phát sau khi SSG ghi HTML (dùng danh sách routes đã prerender).
+emitters.push({
+  name: 'sitemap',
+  run: ({ config, outDir, routes, log }) => {
+    writeSitemapAndRobots({ outDir, routes, sitemap: config.sitemap, robots: config.robots, base: config.base, log });
+  },
+});
 
 export interface StageTiming { stage: string; ms: number }
 

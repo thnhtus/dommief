@@ -46,8 +46,13 @@ export const ConfigSchema = z
     /** Kiểm link nội bộ chết lúc build (DM-410). `--no-link-check` tắt. */
     linkCheck: z.boolean().default(true),
     dev: z.object({ port: z.number().int().positive().default(5173) }).default({ port: 5173 }),
-    /** sitemap.xml + robots.txt (DM-708): chỉ phát khi có `hostname`. */
-    sitemap: z.object({ hostname: z.string().url().optional() }).default({}),
+    /** sitemap.xml + robots.txt (DM-708, CONFIG §1.5). `false` (mặc định) = không phát; khai
+     * object thì `hostname` BẮT BUỘC (không đoán domain). */
+    sitemap: z
+      .union([z.literal(false), z.object({ hostname: z.string().url(), exclude: z.array(z.string()).default([]) })])
+      .default(false),
+    /** Ghi `robots.txt` trỏ tới sitemap. Mặc định: true nếu có sitemap, ngược lại false. */
+    robots: z.boolean().optional(),
     /** Shiki lúc build + số dòng (CONFIG §1, DM-706). `shiki: false` = code thô. */
     markdown: z
       .object({
@@ -77,7 +82,8 @@ export interface ResolvedConfig extends RouteConfig {
   cache: boolean;
   linkCheck: boolean;
   dev: { port: number };
-  sitemap: { hostname?: string };
+  sitemap: false | { hostname: string; exclude: string[] };
+  robots: boolean;
   search: { enabled: boolean };
   markdown: { shiki: false | { themes: { light: string; dark: string } }; lineNumbers: boolean };
   plugins?: DommiefPlugin[];
@@ -178,7 +184,8 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     cache: c.cache,
     linkCheck: c.linkCheck,
     dev: c.dev,
-    sitemap: c.sitemap.hostname === undefined ? {} : { hostname: c.sitemap.hostname },
+    sitemap: c.sitemap,
+    robots: c.robots ?? c.sitemap !== false,
     search: c.search,
     markdown: c.markdown,
     plugins: (c.plugins ?? []) as DommiefPlugin[],
