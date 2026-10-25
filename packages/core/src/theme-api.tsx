@@ -42,6 +42,30 @@ export function useRouteMeta(): PageSummary {
   return (route ? site.meta?.[route.id] : undefined) ?? { frontmatter: {} };
 }
 
+/** Giao diện tối thiểu `useSiteSearch` cần — CHỈ `search`/`dispose`, KHÔNG lộ `SearchClient`/
+ * `SearchPort` ra public API (review Q2: export chúng từ `theme-api` khoá luôn hai type đó
+ * thành public API v0.1 chỉ để phục vụ test seam — không đáng). Test tiêm một object thuần
+ * bọc `SearchClient`/`SearchCore` tự dựng, không cần import type nào từ `search-client.js`. */
+export interface SearchRuntime {
+  search(query: string, locale: string): Promise<SearchResult>;
+  dispose?(): void;
+}
+export const SearchRuntimeContext = createContext<SearchRuntime | null>(null);
+export function SearchRuntimeProvider({ value, children }: { value: SearchRuntime; children?: ReactNode }) {
+  return <SearchRuntimeContext.Provider value={value}>{children}</SearchRuntimeContext.Provider>;
+}
+
+async function createWorkerRuntime(): Promise<SearchRuntime | null> {
+  if (typeof window === 'undefined' || typeof Worker === 'undefined') return null; // SSR.
+  const manifestMod = (await import('virtual:dommief/search-index')) as { default: SearchManifest };
+  if (!Object.keys(manifestMod.default.locales).length) return null; // search.enabled === false.
+  // Đường dẫn TƯƠNG ĐỐI tới file NGUỒN: theme-api luôn được alias về src (paths.ts) nên Vite worker
+  // plugin thấy pattern `new Worker(new URL('./x', import.meta.url))` và bundle worker (kèm
+  // minisearch) thành asset riêng, đi qua `base`.
+  const worker = new Worker(new URL('./client/search-worker.ts', import.meta.url), { type: 'module' });
+  return new SearchClient(wrapRealWorker(worker), manifestMod.default);
+}
+
 export interface UseSiteSearchResult {
   /** `error`: thông điệp an toàn (DM-802 fail-open) — UI hiển thị "không tìm được" thay vì
    * coi nhầm là "không có kết quả". `superseded`: query này đã bị một query mới hơn thay
@@ -63,7 +87,8 @@ export function useSiteSearch(): UseSiteSearchResult {
   const site = useSiteData();
   const { pathname } = useLocation();
   const locale = localeIdFor(site, pathname);
-  const clientPromiseRef = useRef<Promise<SearchClient | null> | null>(null);
+  const injected = useContext(SearchRuntimeContext);
+  const runtimePromiseRef = useRef<Promise<SearchRuntime | null> | null>(null);
   const unmountedRef = useRef(false);
   const [loading, setLoading] = useState(false);
 
@@ -71,42 +96,42 @@ export function useSiteSearch(): UseSiteSearchResult {
     unmountedRef.current = false;
     return () => {
       unmountedRef.current = true;
-      void clientPromiseRef.current?.then((c) => c?.dispose());
-      clientPromiseRef.current = null;
+      void runtimePromiseRef.current?.then((r) => r?.dispose?.());
+      runtimePromiseRef.current = null;
     };
   }, []);
 
-  const ensureClient = useMemo(() => {
-    return (): Promise<SearchClient | null> => {
-      if (clientPromiseRef.current) return clientPromiseRef.current;
-      if (typeof window === 'undefined' || typeof Worker === 'undefined') { clientPromiseRef.current = Promise.resolve(null); return clientPromiseRef.current; } // SSR.
+  const ensureRuntime = useMemo(() => {
+    return (): Promise<SearchRuntime | null> => {
+      if (runtimePromiseRef.current) return runtimePromiseRef.current;
+      if (injected) { runtimePromiseRef.current = Promise.resolve(injected); return runtimePromiseRef.current; }
       setLoading(true);
       const promise = (async () => {
         try {
-          const manifestMod = (await import('virtual:dommief/search-index')) as { default: SearchManifest };
-          if (!Object.keys(manifestMod.default.locales).length) return null; // search.enabled === false.
-          const worker = new Worker(new URL('dommief/search-worker', import.meta.url), { type: 'module' });
-          const client = new SearchClient(wrapRealWorker(worker), manifestMod.default);
-          // Component đã unmount trong lúc `await import()` đang chạy: cleanup đã chạy xong trước
-          // khi worker được tạo — huỷ ngay, đừng để worker sống sót sau unmount (review #2).
-          if (unmountedRef.current) { client.dispose(); return null; }
-          return client;
+          const runtime = await createWorkerRuntime();
+          // Component đã unmount trong lúc tạo worker: cleanup đã chạy xong trước khi runtime có —
+          // huỷ ngay, đừng để worker sống sót sau unmount (review #2).
+          if (runtime && unmountedRef.current) { runtime.dispose?.(); return null; }
+          return runtime;
+        } catch {
+          return null; // fail open: không tạo được worker -> search trả rỗng, không crash UI.
         } finally {
           setLoading(false);
         }
       })();
-      clientPromiseRef.current = promise;
+      runtimePromiseRef.current = promise;
       return promise;
     };
-  }, []);
+  }, [injected]);
 
   const search = useMemo(() => {
-    return async (query: string) => {
-      const client = await ensureClient();
-      if (!client) return { hits: [] };
-      return client.search(query, locale);
+    return async (query: string): Promise<SearchResult> => {
+      if (!query.trim()) return { hits: [] }; // (c) rỗng: không tạo worker, không fetch.
+      const runtime = await ensureRuntime();
+      if (!runtime) return { hits: [] };
+      return runtime.search(query, locale);
     };
-  }, [ensureClient, locale]);
+  }, [ensureRuntime, locale]);
 
   return { search, loading };
 }

@@ -19,10 +19,6 @@
     "./client": {
       "types": "./src/client/index.tsx",
       "default": "./src/client/index.tsx"
-    },
-    "./search-worker": {
-      "types": "./dist/search-worker.d.ts",
-      "default": "./dist/search-worker.js"
     }
   },
   "files": [
@@ -30,7 +26,8 @@
     "src/client",
     "src/types.ts",
     "src/routesModule.ts",
-    "src/theme-api.tsx"
+    "src/theme-api.tsx",
+    "src/search-config.ts"
   ],
   "scripts": {
     "build": "tsup",

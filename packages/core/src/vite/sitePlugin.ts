@@ -65,6 +65,7 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
           locales: config.locales,
           themeConfig: config.themeConfig,
           frontmatter,
+          search: { enabled: config.search.enabled },
         },
         meta,
       });
