@@ -50,12 +50,35 @@ describe('sitemap build integration (DM-708)', () => {
     s.cleanup();
   });
 
-  it('route bị ssg.exclude không xuất hiện trong sitemap', () => {
+  it('route bị ssg.exclude không xuất hiện trong sitemap (KHÔNG khai sitemap.exclude trùng — đây là từ ssg.exclude một mình)', () => {
     const s = createSite('sitemap-exclude');
-    fs.writeFileSync(s.dir + '/dommief.config.ts', "export default { title: 'Fixture', sitemap: { hostname: 'https://example.com', exclude: ['/guide/get-started'] }, ssg: { exclude: ['/guide/get-started'] } };\n");
+    fs.writeFileSync(s.dir + '/dommief.config.ts', "export default { title: 'Fixture', sitemap: { hostname: 'https://example.com' }, ssg: { exclude: ['/guide/get-started'] } };\n");
     s.build();
     const xml = fs.readFileSync(path.join(s.dist, 'sitemap.xml'), 'utf8');
     expect(xml).not.toContain('/guide/get-started');
+    expect(xml).toContain('https://example.com/'); // route khác vẫn có
+    s.cleanup();
+  });
+
+  it('<link rel="canonical"> khớp đúng URL sitemap, mỗi trang một canonical khác nhau, không có ở 404', () => {
+    const s = createSite('sitemap-canonical');
+    fs.writeFileSync(s.dir + '/dommief.config.ts', "export default { title: 'Fixture', base: '/sub/', sitemap: { hostname: 'https://example.com' } };\n");
+    s.build();
+    const home = fs.readFileSync(path.join(s.dist, 'index.html'), 'utf8');
+    const guide = fs.readFileSync(path.join(s.dist, 'guide/get-started/index.html'), 'utf8');
+    const notFound = fs.readFileSync(path.join(s.dist, '404.html'), 'utf8');
+    expect(home).toContain('<link rel="canonical" href="https://example.com/sub/">');
+    expect(guide).toContain('<link rel="canonical" href="https://example.com/sub/guide/get-started">');
+    expect(notFound).not.toContain('rel="canonical"');
+    s.cleanup();
+  });
+
+  it('sitemap false → không chèn canonical vào HTML', () => {
+    const s = createSite('sitemap-canonical-off');
+    fs.writeFileSync(s.dir + '/dommief.config.ts', "export default { title: 'Fixture' };\n");
+    s.build();
+    const home = fs.readFileSync(path.join(s.dist, 'index.html'), 'utf8');
+    expect(home).not.toContain('rel="canonical"');
     s.cleanup();
   });
 });
