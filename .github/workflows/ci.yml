@@ -2,10 +2,9 @@
 # yamllint disable rule:truthy
 name: CI
 
+# Chỉ chạy tay (Actions → Run workflow / `gh workflow run CI`).
 on:
-  push:
-    branches: [master]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-and-test:

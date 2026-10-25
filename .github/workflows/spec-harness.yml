@@ -2,7 +2,8 @@
 # Cài: cp adapters/ci/validate-tasks.yml .github/workflows/
 name: spec-harness
 
-on: [push, pull_request]
+# Chỉ chạy tay (Actions → Run workflow / `gh workflow run spec-harness`).
+on: [workflow_dispatch]
 
 jobs:
   validate-tasks:
