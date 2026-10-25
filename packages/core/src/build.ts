@@ -10,7 +10,7 @@ import type { PluginHookHost } from './plugins.js';
 import type { Logger } from './log.js';
 import type { Route } from './types.js';
 import { collect, check, formatIssues } from './link-check.js';
-import { TransformCache } from './cache.js';
+import { TransformCache, type CacheStats } from './cache.js';
 import { matchExclude } from './exclude.js';
 import { writeSitemapAndRobots, canonicalUrl } from './sitemap.js';
 import type { TocItem } from './markdown/index.js';
@@ -31,6 +31,13 @@ export interface BuildOptions {
   config: ResolvedConfig;
   host: PluginHookHost;
   log: Logger;
+}
+
+/** DM-409 lát mỏng: `runBuild` trả số thay vì chỉ ghi log, để test đọc trực tiếp (không parse
+ * stdout). `cacheStats` là `TransformCache.stats` hiện có (DM-406) — không đổi shape, chỉ lộ ra. */
+export interface BuildResult {
+  timings: Record<string, number>;
+  cacheStats: CacheStats;
 }
 
 export class LinkCheckFailedError extends Error {
@@ -68,11 +75,24 @@ emitters.push({
 
 export interface StageTiming { stage: string; ms: number }
 
+/**
+ * Lát mỏng DM-409 (xem docs/backlog/DM-409.md): thêm cột `%` + luôn in (không cần `--verbose`).
+ * CHƯA đạt: 9 khâu riêng (config/scan/parse/highlight tách khỏi build:client) — ở kiến trúc
+ * hiện tại `parse`/`highlight` chạy LỒNG trong `build:client`/`build:ssr` (qua
+ * `dommiefPlugin.load()`, không phải một lời gọi `vite.build` riêng) nên tách đúng đòi thu thập
+ * thời gian qua callback xuyên plugin (kiểu `collectTexts` ở DM-801), không phải thêm một
+ * `timed()` mới — để lại cho phần 2 của DM-409 khi có quyết định tối ưu cần số đó.
+ * Các khâu liệt kê ở đây KHÔNG rời nhau tuyệt đối (`search-index`/sitemap nằm SAU
+ * `build:client`/`build:ssr`, không nằm trong) nên `%` cộng xấp xỉ 100% nhưng không chính xác
+ * tuyệt đối nếu sau này có emitter đan xen — đủ đúng để thấy khâu nào đáng đụng trước.
+ */
 export function formatTimings(timings: StageTiming[]): string {
   const total = timings.reduce((s, t) => s + t.ms, 0);
   const w = Math.max(...timings.map((t) => t.stage.length), 5);
-  const rows = timings.map((t) => `  ${t.stage.padEnd(w)}  ${String(Math.round(t.ms)).padStart(6)} ms`);
-  return ['build timings:', ...rows, `  ${'total'.padEnd(w)}  ${String(Math.round(total)).padStart(6)} ms`].join('\n');
+  const pct = (ms: number) => (total > 0 ? `${Math.round((ms / total) * 100)}%` : '—').padStart(4);
+  const sec = (ms: number) => ((ms / 1000).toFixed(2) + 's').padStart(8);
+  const rows = timings.map((t) => `  ${t.stage.padEnd(w)}  ${sec(t.ms)}  ${pct(t.ms)}`);
+  return ['build timings:', ...rows, `  ${'total'.padEnd(w)}  ${sec(total)}  ${pct(total)}`].join('\n');
 }
 
 /**
@@ -112,7 +132,7 @@ function routesByPath(routes: Route[]): Record<string, { path: string }> {
   return Object.fromEntries(routes.map((r) => [r.path, { path: r.path }]));
 }
 
-export async function runBuild({ root, config, host, log }: BuildOptions): Promise<void> {
+export async function runBuild({ root, config, host, log }: BuildOptions): Promise<BuildResult> {
   // `config.linkCheck` đã gộp `--no-link-check` qua `loadConfig` (config.ts); không cần tham số riêng ở đây.
   const linkCheckEnabled = config.linkCheck !== false;
   const timings: StageTiming[] = [];
@@ -249,6 +269,12 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     log.info(cache.summary());
     if (log.verbose) for (const [f, why] of Object.entries(cache.stats.missReasons)) log.info(`  miss ${path.relative(root, f)} (${why})`);
   }
-  if (log.verbose) log.info(formatTimings(timings));
+  // DM-409 lát mỏng: bảng timing LUÔN in (tiêu chí spec — không cần `--verbose`; trước đây chỉ
+  // in khi verbose, mâu thuẫn trực tiếp với "bảng ~10 dòng, giá trị cao hơn phiền toái").
+  log.info(formatTimings(timings));
   log.info('build done');
+  return {
+    timings: Object.fromEntries(timings.map((t) => [t.stage, t.ms])),
+    cacheStats: cache.stats,
+  };
 }
