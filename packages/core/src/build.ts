@@ -122,7 +122,11 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   };
   // DM-406: cache nằm ở `.dommief/cache` (KHÔNG nằm trong `.dommief/server`, vì thư mục đó bị emptyOutDir mỗi build).
   const cache = new TransformCache(path.join(root, '.dommief', 'cache'), config.cache);
-  const plugins = () => [dommiefPlugin({ root, config, host, cache })];
+  // DM-801: thu `texts` mỗi file .md ngay trong lượt transform của build client (đủ 1 lần cho
+  // cả build — build ssr dùng chung `dommiefPlugin` nên transform lại trang đã cache sẽ không
+  // gọi lại `load()`, chỉ cần gắn collector ở MỖI lần `plugins()` để cả 2 lượt đều ghi được vo cùng Map).
+  const textsByFile = new Map<string, import('./markdown/index.js').TextFragment[]>();
+  const plugins = () => [dommiefPlugin({ root, config, host, cache, collectTexts: (file, texts) => textsByFile.set(file, texts) })];
   const distDir = path.resolve(root, config.outDir);
 
   // (a) client build → outDir/
@@ -160,7 +164,7 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   // nằm ở `site.routes[r.id].file` (sinh bởi siteModule.ts, đầy đủ kiểu `Route`).
   const routes: Route[] = serverMod.routes ?? serverMod.default?.routes ?? [];
   const render: (url: string) => Promise<string> = serverMod.render ?? serverMod.default?.render;
-  const site: { routes?: Record<string, { file: string }>; meta?: Record<string, { toc?: TocItem[] }> } | undefined = serverMod.site ?? serverMod.default?.site;
+  const site: { routes?: Record<string, { file: string }>; meta?: Record<string, { toc?: TocItem[]; frontmatter?: Record<string, unknown> }> } | undefined = serverMod.site ?? serverMod.default?.site;
   const fileOf = (routeId: string): string => site?.routes?.[routeId]?.file ?? routeId;
   const canonicalHostname: string | undefined = config.sitemap === false ? undefined : config.sitemap.hostname;
   const escapeAttr = (s: string) => s.replace(/"/g, '&quot;');
@@ -206,6 +210,34 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
       }
       const issues = check(linkRefs, { byPath: routesByPath(routes), tocByRoute, base: config.base, outDir: distDir });
       if (issues.length) throw new LinkCheckFailedError(formatIssues(issues));
+    });
+  }
+
+  if (config.search.enabled) {
+    await timed('search-index', async () => {
+      const { buildSearchIndex, INDEX_BUDGET_BYTES_PER_PAGE } = await import('./search.js');
+      const res = await buildSearchIndex({
+        routes: plan.prerender,
+        loadPageMeta: (r) => ({
+          frontmatter: site?.meta?.[r.id]?.frontmatter ?? {},
+          toc: site?.meta?.[r.id]?.toc ?? [],
+          texts: textsByFile.get(fileOf(r.id)) ?? [],
+        }),
+        config: { locales: config.locales },
+      });
+      const searchDir = path.join(distDir, 'search-index');
+      fs.mkdirSync(searchDir, { recursive: true });
+      for (const [localeId, json] of Object.entries(res.locales)) {
+        fs.writeFileSync(path.join(searchDir, `${localeId}.json`), JSON.stringify(json));
+      }
+      for (const [localeId, s] of Object.entries(res.stats)) {
+        const kbPerPage = s.pages ? (s.bytes / 1024 / s.pages).toFixed(1) : '0';
+        log.info(`search index [${localeId}]: ${s.docs} docs, ${(s.bytes / 1024).toFixed(1)} KB, ${kbPerPage} KB/trang`);
+        // DM-805: chỉ cảnh báo, KHÔNG fail build ở v0.1 (tiêu chí #3 — siết lại là việc của DM-1102).
+        if (s.bytes > INDEX_BUDGET_BYTES_PER_PAGE * s.pages) {
+          log.warn(`search index [${localeId}] vượt ngân sách ${(INDEX_BUDGET_BYTES_PER_PAGE / 1024).toFixed(0)} KB/trang (đang ở ${kbPerPage} KB/trang)`);
+        }
+      }
     });
   }
 
