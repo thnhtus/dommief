@@ -6,6 +6,8 @@ import { PREFERS_COLOR_ATTR, PREFERS_COLOR_STORAGE_KEY, type ColorValue, type Pr
 export type { SiteData, NavItem, SidebarGroup, TocEntry, PageSummary } from './types.js';
 export { PREFERS_COLOR_ATTR, PREFERS_COLOR_STORAGE_KEY, PREFERS_COLOR_BOOT_SCRIPT, resolveConfiguredColor } from './prefers-color.js';
 export type { ColorValue, PrefersColorValue } from './prefers-color.js';
+export { ClientOnly } from './client/ClientOnly.js';
+export type { ClientOnlyProps } from './client/ClientOnly.js';
 
 export const SiteContext = createContext<SiteData | null>(null);
 
