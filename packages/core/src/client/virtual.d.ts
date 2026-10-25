@@ -9,3 +9,8 @@ declare module 'virtual:dommief/site' {
   const site: import('../types.js').SiteData;
   export default site;
 }
+
+declare module 'virtual:dommief/search-index' {
+  const manifest: import('./search-core.js').SearchManifest;
+  export default manifest;
+}
