@@ -11,6 +11,7 @@ import type { Logger } from './log.js';
 import type { Route } from './types.js';
 import { collect, check, formatIssues } from './link-check.js';
 import { TransformCache } from './cache.js';
+import { matchExclude } from './exclude.js';
 import type { TocItem } from './markdown/index.js';
 
 const ROOT_PLACEHOLDER = /<div id="root"><\/div>/;
@@ -66,19 +67,32 @@ export function formatTimings(timings: StageTiming[]): string {
  * - `exclude`: KHÔNG prerender nhưng VẪN ghi shell (index.html chưa có nội dung) để host không SPA-fallback không 404.
  * - `noEmit`: không ghi file nào.
  */
-export function planRoutes(routes: Route[], ssg: { exclude: string[]; noEmit: string[] }): { prerender: Route[]; shell: Route[] } {
+export function planRoutes(routes: Route[], ssg: { exclude: string[]; noEmit: string[] }, log?: Logger): { prerender: Route[]; shell: Route[] } {
   const prerender: Route[] = [];
   const shell: Route[] = [];
   for (const r of routes) {
     if (matchesAny(r.path, ssg.noEmit)) continue;
-    (matchesAny(r.path, ssg.exclude) ? shell : prerender).push(r);
+    if (matchesAny(r.path, ssg.exclude)) {
+      shell.push(r);
+      // DM-411: exclude một route KHÔNG PHẢI lá (có route con) nghĩa là điều hướng thẳng vào
+      // URL đó trên static host sẽ 404 (host không phục vụ shell cho prefix). Cảnh báo,
+      // không fail — người dùng có quyền tự biết host của mình có SPA fallback hay không.
+      if (log && routes.some((other) => other !== r && other.path.startsWith(r.path === '/' ? '/' : r.path + '/'))) {
+        log.warn(`ssg.exclude đang loại route "${r.path}" NHƯNG nó có route con — điều hướng thẳng vào "${r.path}" trên host không SPA fallback sẽ 404`);
+      }
+      continue;
+    }
+    prerender.push(r);
   }
   return { prerender, shell };
 }
 
-/** Khớp path với pattern: đúng chuỗi, hoặc prefix kết thúc bằng `/*`. */
+/**
+ * Khớp route path với pattern glob (`*` một segment, `**` nhiều segment — exclude.ts). Thêm một
+ * quy ước cũ đã có test: `/a/*` khớp cả chính `/a` (loại cả trang mục lục lẫn trang con).
+ */
 export function matchesAny(p: string, patterns: string[]): boolean {
-  return patterns.some((pat) => (pat.endsWith('/*') ? p === pat.slice(0, -2) || p.startsWith(pat.slice(0, -1)) : p === pat));
+  return patterns.some((pat) => (pat.endsWith('/*') && p === pat.slice(0, -2)) || matchExclude(p, [pat]));
 }
 
 function routesByPath(routes: Route[]): Record<string, { path: string }> {
@@ -136,7 +150,7 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   const site: { routes?: Record<string, { file: string }>; meta?: Record<string, { toc?: TocItem[] }> } | undefined = serverMod.site ?? serverMod.default?.site;
   const fileOf = (routeId: string): string => site?.routes?.[routeId]?.file ?? routeId;
   const wrap = (html: string) => template.replace(ROOT_PLACEHOLDER, () => `<div id="root">${html}</div>`);
-  const plan = planRoutes(routes, config.ssg);
+  const plan = planRoutes(routes, config.ssg, log);
   const writePage = (r: Route, html: string) => {
     const targetDir = r.path === '/' ? distDir : path.join(distDir, r.path.replace(/^\//, ''));
     fs.mkdirSync(targetDir, { recursive: true });
