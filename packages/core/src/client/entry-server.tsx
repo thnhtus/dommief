@@ -8,6 +8,8 @@ import virtualSite from 'virtual:dommief/site';
 import { SiteProvider } from '../theme-api.js';
 
 export { default as routes } from 'virtual:dommief/routes';
+// DM-410: build.ts đọc `site.meta[routeId].toc` để kiểm anchor mà không phải tự parse lại HTML.
+export { default as site } from 'virtual:dommief/site';
 
 /** `url` là path của route (không gồm base); StaticRouter cần URL đầy đủ + basename. */
 export async function render(url: string): Promise<string> {

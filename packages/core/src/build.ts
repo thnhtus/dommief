@@ -9,6 +9,8 @@ import type { ResolvedConfig } from './config.js';
 import type { PluginHookHost } from './plugins.js';
 import type { Logger } from './log.js';
 import type { Route } from './types.js';
+import { collect, check, formatIssues } from './link-check.js';
+import type { TocItem } from './markdown/index.js';
 
 const ROOT_PLACEHOLDER = /<div id="root"><\/div>/;
 
@@ -26,6 +28,12 @@ export interface BuildOptions {
   config: ResolvedConfig;
   host: PluginHookHost;
   log: Logger;
+}
+
+export class LinkCheckFailedError extends Error {
+  constructor(public readonly report: string) {
+    super('link nội bộ chết; chạy với --no-link-check để bỏ qua');
+  }
 }
 
 /** Ngữ cảnh cho các bước phát file bổ sung (sitemap, robots, search index...). */
@@ -72,7 +80,13 @@ export function matchesAny(p: string, patterns: string[]): boolean {
   return patterns.some((pat) => (pat.endsWith('/*') ? p === pat.slice(0, -2) || p.startsWith(pat.slice(0, -1)) : p === pat));
 }
 
+function routesByPath(routes: Route[]): Record<string, { path: string }> {
+  return Object.fromEntries(routes.map((r) => [r.path, { path: r.path }]));
+}
+
 export async function runBuild({ root, config, host, log }: BuildOptions): Promise<void> {
+  // `config.linkCheck` đã gộp `--no-link-check` qua `loadConfig` (config.ts); không cần tham số riêng ở đây.
+  const linkCheckEnabled = config.linkCheck !== false;
   const timings: StageTiming[] = [];
   const timed = async <T>(stage: string, fn: () => Promise<T>): Promise<T> => {
     const t0 = performance.now();
@@ -110,8 +124,14 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     throw new DommiefError('index.html không có <div id="root"></div> để chèn nội dung prerender', { file: templatePath, code: 'ssg_no_root' });
   }
   const serverMod: any = await import(pathToFileURL(path.join(ssrDir, 'server.mjs')).href);
+  // CHÚ Ý: đây là `RouteModule[]` (routesModule.ts: {id, path, component, preload}), KHÔNG phải
+  // `Route[]` đầy đủ (không có `file`) — đặt tên `routes` theo code cũ, nhưng đừng đọc
+  // `r.file` trên nó (luôn `undefined`, đã bắt trực tiếp lúc test link-check thật). File thật
+  // nằm ở `site.routes[r.id].file` (sinh bởi siteModule.ts, đầy đủ kiểu `Route`).
   const routes: Route[] = serverMod.routes ?? serverMod.default?.routes ?? [];
   const render: (url: string) => Promise<string> = serverMod.render ?? serverMod.default?.render;
+  const site: { routes?: Record<string, { file: string }>; meta?: Record<string, { toc?: TocItem[] }> } | undefined = serverMod.site ?? serverMod.default?.site;
+  const fileOf = (routeId: string): string => site?.routes?.[routeId]?.file ?? routeId;
   const wrap = (html: string) => template.replace(ROOT_PLACEHOLDER, () => `<div id="root">${html}</div>`);
   const plan = planRoutes(routes, config.ssg);
   const writePage = (r: Route, html: string) => {
@@ -119,8 +139,13 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     fs.mkdirSync(targetDir, { recursive: true });
     fs.writeFileSync(path.join(targetDir, 'index.html'), html);
   };
+  const linkRefs: ReturnType<typeof collect> = [];
   await timed('prerender', async () => {
-    await mapLimit(plan.prerender, config.ssg.concurrency, async (r) => writePage(r, wrap(await render(r.path))));
+    await mapLimit(plan.prerender, config.ssg.concurrency, async (r) => {
+      const html = await render(r.path);
+      if (linkCheckEnabled) linkRefs.push(...collect(r.id, html, fileOf(r.id)));
+      writePage(r, wrap(html));
+    });
     for (const r of plan.shell) writePage(r, template);
     // 404.html: route "*" của cùng cây <Routes>
     try {
@@ -129,6 +154,19 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
       log.warn('không render được 404.html: ' + formatError(e));
     }
   });
+
+  if (linkCheckEnabled) {
+    await timed('link-check', async () => {
+      // route bị `ssg.exclude` không có trong site.meta (prerender bỏ qua) → không khóa anchor check nhầm lỗi (DM-410 ca h).
+      const tocByRoute: Record<string, TocItem[]> = {};
+      for (const r of plan.prerender) {
+        const meta = site?.meta?.[r.id];
+        if (meta?.toc) tocByRoute[r.path] = meta.toc;
+      }
+      const issues = check(linkRefs, { byPath: routesByPath(routes), tocByRoute, base: config.base, outDir: distDir });
+      if (issues.length) throw new LinkCheckFailedError(formatIssues(issues));
+    });
+  }
 
   for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes, log }); });
   await timed('plugins', () => host.runBuildEnd({ config, outDir: distDir, routes }));

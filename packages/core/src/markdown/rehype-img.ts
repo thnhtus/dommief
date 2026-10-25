@@ -21,6 +21,12 @@ export function rehypeImg() {
       images.push({ name, specifier });
       node.properties.src = name;
     });
+    // DM-410: như rehype-link.ts, gắn dòng nguồn để link-check báo đúng `file:line` cho asset chết.
+    visit(tree, 'element', (node: any) => {
+      if (node.tagName !== 'img' || !node.properties?.src || node.properties['data-src-line']) return;
+      const line = node.position?.start?.line;
+      if (line) node.properties['data-src-line'] = String(line);
+    });
     file.data = file.data || {};
     file.data.images = images;
   };

@@ -36,6 +36,15 @@ export function rehypeLink(options: RehypeLinkOptions = {}) {
       if (route) node.properties.href = (route.path === '/' ? prefix + '/' : prefix + route.path) + tail;
       else warnings.push(`link_unresolved: "${href}" trong ${from} không trỏ tới file md nào thuộc docDirs`);
     });
+    // DM-410: gắn dòng nguồn lên MọI `<a>` nội bộ (kể cả link không đổi ở trên) để link-check
+    // báo đúng `file:line` thay vì chỉ `routeId`. ~20 byte/link, cố ý giữ lại trong HTML để debug.
+    visit(tree, 'element', (node: any) => {
+      if (node.tagName !== 'a' || !node.properties?.href || node.properties['data-src-line']) return;
+      const href = String(node.properties.href);
+      if (EXTERNAL.test(href) && !href.startsWith('/')) return;
+      const line = node.position?.start?.line;
+      if (line) node.properties['data-src-line'] = String(line);
+    });
     if (file?.data) file.data.warnings = warnings;
   };
 }

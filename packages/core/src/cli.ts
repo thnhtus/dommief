@@ -4,7 +4,7 @@ import { dommiefPlugin } from './vite/plugin.js';
 import { createLogger } from './log.js';
 import { loadConfig } from './config.js';
 import { createPluginHost } from './plugins.js';
-import { runBuild } from './build.js';
+import { runBuild, LinkCheckFailedError } from './build.js';
 
 const cli = cac('dommief');
 
@@ -39,7 +39,16 @@ cli.command('build', 'build site')
     log.debug('root=' + root);
     const config = await loadConfig(root, { base: opts.base, outDir: opts.outDir, cache: opts.cache, linkCheck: opts.linkCheck });
     const host = createPluginHost(config.plugins ?? []);
-    await runBuild({ root, config, host, log });
+    try {
+      await runBuild({ root, config, host, log });
+    } catch (e) {
+      if (e instanceof LinkCheckFailedError) {
+        log.error('link nội bộ chết:\n' + e.report);
+        process.exitCode = 1;
+        return;
+      }
+      throw e;
+    }
   });
 
 cli.command('preview', 'preview built site')
