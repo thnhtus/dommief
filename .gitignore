@@ -6,3 +6,6 @@ dist
 docs/tasks/_stamp.log
 docs/tasks/_triage.log
 tests/fixtures/.work
+playwright-report
+test-results
+dist-sub

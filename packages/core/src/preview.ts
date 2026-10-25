@@ -60,8 +60,8 @@ export async function startPreview(opts: PreviewOptions): Promise<PreviewServer>
 function spaFallbackPlugin(opts: PreviewOptions): Plugin {
   const shellPath = path.join(opts.outDir, 'index.html');
   const base = opts.base.replace(/\/$/, '');
-  const serveHtml = (res: ServerResponse, file: string) => {
-    res.statusCode = 200;
+  const serveHtml = (res: ServerResponse, file: string, status = 200) => {
+    res.statusCode = status;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     fs.createReadStream(file).pipe(res);
   };
@@ -107,6 +107,12 @@ function spaFallbackPlugin(opts: PreviewOptions): Plugin {
         // nhường static handler của Vite xử lý (404 thật nếu không tồn tại); còn lại -> shell
         // (SPA fallback cho URL client-only chưa build).
         if (/\.[a-z0-9]+$/i.test(rel.replace(/\.html$/i, ''))) return next();
+        // URL chưa từng build: static host thật (Netlify/CF Pages/GitHub Pages) phục vụ `404.html` với
+        // status 404, không phải trang chủ — phục vụ shell ở đây từng làm preview hydrate nội dung
+        // trang chủ ở URL lạ (React #418, bắt bằng e2e trình duyệt thật). Chỉ rơi về shell khi build
+        // không có 404.html (render 404 lỗi).
+        const notFound = path.join(opts.outDir, '404.html');
+        if (fs.existsSync(notFound)) { serveHtml(res, notFound, 404); return; }
         serveHtml(res, shellPath);
       });
     },

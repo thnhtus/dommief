@@ -44,10 +44,11 @@ describe('createAppRoutes', () => {
     expect(out).not.toContain('INDEX-PAGE');
   });
 
-  it('(c) path lạ → 404 + path hiện tại (route * cùng <Routes>)', () => {
+  it('(c) path lạ → 404 (route * cùng <Routes>); path thật chỉ hiện sau mount nên HTML tĩnh là /404', () => {
     const out = html('/khong-co');
     expect(out).toContain('404');
-    expect(out).toContain('/khong-co');
+    expect(out).toContain('<p>/404</p>');
+    expect(out).not.toContain('INDEX-PAGE');
   });
 
   it('(e) component trang nhận props rỗng', () => {
