@@ -48,6 +48,13 @@ export const ConfigSchema = z
     dev: z.object({ port: z.number().int().positive().default(5173) }).default({ port: 5173 }),
     /** sitemap.xml + robots.txt (DM-708): chỉ phát khi có `hostname`. */
     sitemap: z.object({ hostname: z.string().url().optional() }).default({}),
+    /** Shiki lúc build + số dòng (CONFIG §1, DM-706). `shiki: false` = code thô. */
+    markdown: z
+      .object({
+        shiki: z.union([z.literal(false), z.object({ themes: z.object({ light: z.string(), dark: z.string() }) })]).default({ themes: { light: 'github-light', dark: 'github-dark' } }),
+        lineNumbers: z.boolean().default(false),
+      })
+      .default({ shiki: { themes: { light: 'github-light', dark: 'github-dark' } }, lineNumbers: false }),
     /** Search index (DM-801). */
     search: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
     plugins: z.array(z.any()).default([]),
@@ -72,6 +79,7 @@ export interface ResolvedConfig extends RouteConfig {
   dev: { port: number };
   sitemap: { hostname?: string };
   search: { enabled: boolean };
+  markdown: { shiki: false | { themes: { light: string; dark: string } }; lineNumbers: boolean };
   plugins?: DommiefPlugin[];
 }
 
@@ -172,6 +180,7 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     dev: c.dev,
     sitemap: c.sitemap.hostname === undefined ? {} : { hostname: c.sitemap.hostname },
     search: c.search,
+    markdown: c.markdown,
     plugins: (c.plugins ?? []) as DommiefPlugin[],
   };
   if (c.description !== undefined) config.description = c.description;

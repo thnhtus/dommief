@@ -2,6 +2,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
+import remarkDirective from 'remark-directive';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
 import { visit } from 'unist-util-visit';
@@ -14,6 +15,8 @@ import { rehypeDesc, rehypeStrip } from './rehype-desc.js';
 import { rehypeText } from './rehype-text.js';
 import { rehypeDemo, remarkDemoMeta } from './rehype-demo.js';
 import { rehypeApi } from './rehype-api.js';
+import { remarkContainer } from './remark-container.js';
+import { remarkCodeMeta, rehypeCode, type RehypeCodeOptions } from './rehype-code.js';
 import { toModule } from './to-module.js';
 import { DommiefError } from './errors.js';
 import { createPluginHost, type PluginHookHost } from '../plugins.js';
@@ -35,6 +38,8 @@ export interface TransformMarkdownOptions {
   byFile?: Record<string, { path: string }>;
   /** `config.base` để gắn tiền tố cho link nội bộ. */
   base?: string;
+  /** `config.markdown` (shiki + lineNumbers), DM-706. */
+  code?: RehypeCodeOptions;
 }
 export async function transformMarkdown(source: string, file: string, opts: TransformMarkdownOptions = {}): Promise<{ code: string; meta: PageMeta; warnings: string[]; apiSrcFiles: string[] }> {
   const host = opts.hooks ?? (opts.plugins ? createPluginHost(opts.plugins) : undefined);
@@ -46,7 +51,10 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
       .use(remarkParse)
       .use(remarkFrontmatter, ['yaml'])
       .use(remarkGfm)
+      .use(remarkDirective)
+      .use(remarkContainer)
       .use(remarkMeta, { filename: file })
+      .use(remarkCodeMeta)
       .use(remarkDemoMeta);
     for (const p of remarkPlugins) processor = processor.use(p);
     processor = processor
@@ -62,6 +70,8 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
       .use(rehypeStrip)
       .use(rehypeText)
       .use(rehypeDemo)
+      // sau rehypeDemo (fence `demo` đã thành DumiDemo) và sau rehypeStrip/rehypeText (§3.16).
+      .use(rehypeCode, opts.code ?? {})
       .use(rehypeApi);
   } catch (e) {
     throw new DommiefError('failed to build pipeline', { file });
