@@ -1,41 +1,14 @@
 import MiniSearch from 'minisearch';
 import type { Route, ResolvedLocale } from './types.js';
 import type { PageMeta, TextFragment } from './markdown/index.js';
+import { createMiniSearchConfig, SEARCH_FIELDS, SEARCH_STORE_FIELDS, type MiniSearchConfig } from './search-config.js';
 
 export const INDEX_BUDGET_BYTES_PER_PAGE = 5 * 1024;
 
-export interface MiniSearchConfig {
-  tokenize: (text: string) => string[];
-  processTerm: (term: string) => string | null;
-}
-
-export function createMiniSearchConfig(): MiniSearchConfig {
-  const stripDiacritics = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const processTerm = (term: string) => {
-    // `đ` không tách được bằng NFD nên đổi tay
-    const t = stripDiacritics(term).toLowerCase().replace(/đ/g, 'd').normalize('NFC').trim();
-    return t.length ? t : null;
-  };
-  const tokenize = (text: string) => {
-    const out: string[] = [];
-    for (const raw of text.split(/[\s\p{P}]+/u)) {
-      if (!raw) continue;
-      // CJK: split each character
-      let buf = '';
-      for (const ch of raw) {
-        if (/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(ch)) {
-          if (buf) { out.push(buf); buf = ''; }
-          out.push(ch);
-        } else {
-          buf += ch;
-        }
-      }
-      if (buf) out.push(buf);
-    }
-    return out;
-  };
-  return { tokenize, processTerm };
-}
+// Giữ re-export để không phá import cũ (`from './search.js'`) — nguồn thật đã chuyển sang
+// search-config.ts để worker (DM-802) dùng chung mà không kéo theo `minisearch`/Node-only code.
+export { createMiniSearchConfig, SEARCH_FIELDS, SEARCH_STORE_FIELDS };
+export type { MiniSearchConfig };
 
 export interface SearchDocument {
   id: string;
@@ -73,8 +46,8 @@ export async function buildSearchIndex(opts: BuildSearchIndexOptions): Promise<B
     const locRoutes = routes.filter((r) => (r.locale ?? defaultLocale) === loc.id);
     if (locRoutes.length === 0) continue;
     const ms = new MiniSearch({
-      fields: ['value', 'pageTitle', 'sectionTitle'],
-      storeFields: ['routeId', 'path', 'pageTitle', 'sectionTitle', 'paraId', 'value', 'pageKey', 'sectionKey'],
+      fields: [...SEARCH_FIELDS],
+      storeFields: [...SEARCH_STORE_FIELDS],
       ...cfg,
     });
     const docs: SearchDocument[] = [];

@@ -7,6 +7,7 @@ import { transformMarkdown } from '../markdown/index.js';
 import { resolveClientFile, resolveThemeApiFile } from '../paths.js';
 import { dommiefRoutesPlugin } from './routesPlugin.js';
 import { dommiefSitePlugin } from './sitePlugin.js';
+import { dommiefSearchIndexPlugin } from './searchIndexPlugin.js';
 import { createState } from './state.js';
 import { winPath } from '../utils/path.js';
 import { buildAliasChain } from '../theme/resolver.js';
@@ -26,6 +27,12 @@ export interface DommiefPluginOptions {
   host?: PluginHookHost;
   /** Chỉ `dommief build` truyền vào (DM-406); dev chạy trong bộ nhớ Vite nên không cache. */
   cache?: TransformCache;
+  /** DM-801: thu `PageMeta.texts` ngay trong lượt transform đã có (cả cache hit lẫn miss —
+   * payload cache luôn chứa `meta.texts`), KHÔNG transform lại file .md ở bước search index
+   * riêng — nếu không phải tự dựng lại `routesHash`/`pipelineHash` khớp hệt để trúng cache
+   * (sai một chi tiết = miss toàn bộ, im lặng) và thổi gấp đôi số cache stats hiển thị cho
+   * người dùng. Chỉ `dommief build` truyền vào. */
+  collectTexts?: (file: string, texts: import('../markdown/index.js').TextFragment[]) => void;
 }
 
 // Plugin tổng hợp: transform md + ?meta + entry ảo, và uỷ thác virtual:dommief/routes
@@ -103,6 +110,7 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         }
         for (const w of warnings) this.warn(w);
         for (const apiFile of apiSrcFiles) this.addWatchFile(apiFile); // <API src> đọc file khác .md (#17)
+        if (!isMeta) opts.collectTexts?.(file, meta.texts); // DM-801: thu 1 lần/file, không tính với nhánh `?meta`
         if (isMeta) {
           // ?meta: import công khai cho code người dùng (vd `import m from './x.md?meta'`).
           // KHÔNG còn ai trong core dùng đường này để dựng site module — xem `extractPageSummary` (#12).
@@ -150,5 +158,5 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       server.watcher.on('unlink', (f) => { if (winPath(f).startsWith(localThemeDir)) update(); });
     },
   };
-  return [markdownPlugin, dommiefRoutesPlugin(state), dommiefSitePlugin(state)] as Plugin[];
+  return [markdownPlugin, dommiefRoutesPlugin(state), dommiefSitePlugin(state), dommiefSearchIndexPlugin(state)] as Plugin[];
 }
