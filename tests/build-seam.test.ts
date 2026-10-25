@@ -35,10 +35,17 @@ describe('config mới', () => {
   });
 });
 
-describe('formatTimings', () => {
-  it('in từng khâu và tổng', () => {
+describe('formatTimings (DM-409 lát mỏng: cột %, luôn in)', () => {
+  it('in từng khâu kèm % và tổng', () => {
     const s = formatTimings([{ stage: 'client', ms: 10 }, { stage: 'ssr', ms: 5 }]);
     expect(s).toContain('client');
-    expect(s).toMatch(/total\s+15 ms/);
+    expect(s).toMatch(/client\s+0\.01s\s+67%/);
+    expect(s).toMatch(/ssr\s+0\.01s\s+33%/);
+    expect(s).toMatch(/total\s+0\.01s\s+100%/);
+  });
+  it('mảng rỗng -> không NaN/Infinity, % hiện —', () => {
+    const s = formatTimings([]);
+    expect(s).not.toMatch(/NaN|Infinity/);
+    expect(s).toContain('—');
   });
 });
