@@ -84,12 +84,19 @@ function allNames(chain: ThemeChain, kind: ThemeKind): string[] {
  */
 export function buildAliasChain(cwd: string, config: Pick<ResolvedConfig, 'theme'>): AliasMap {
   const chain = loadThemeChain(cwd, config);
-  const aliases: AliasMap = { 'dommief/theme': chain.pkg.root };
+  const aliases: AliasMap = {};
   for (const kind of ['slots', 'builtins', 'layouts'] as const) {
     for (const name of allNames(chain, kind)) {
       aliases[`dommief/theme/${kind}/${name}`] = resolveSlot(name, kind, chain);
     }
   }
+  // QUAN TRỌNG: alias tổng quát `dommief/theme` PHẢI được thêm SAU cùng. Vite/`@rollup/plugin-alias`
+  // khớp theo thứ tự chuỗi key (object → array, giữ thứ tự chèn) và dùng pattern string TRÙNG
+  // PREFIX (`importee.startsWith(pattern + '/')`) — nếu `dommief/theme` đứng TRƯỚC, nó khớp
+  // ngay cả `dommief/theme/slots/Footer` và thắng trước alias cụ thể hơn, thay thế đúng đoạn
+  // prefix bằng `pkg.root` rồi nối `/slots/Footer` → luôn ra đường dẫn DEFAULT, bỏ qua local
+  // override hoàn toàn (đã bắt trực tiếp bằng build-e2e thật: alias đúng nhưng output sai).
+  aliases['dommief/theme'] = chain.pkg.root;
   return aliases;
 }
 

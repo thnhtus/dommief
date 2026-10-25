@@ -84,8 +84,11 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   // (a) client build → outDir/
   await timed('client', () => build({ root, plugins: plugins(), base: config.base, build: { outDir: distDir, emptyOutDir: true } }));
 
-  // (b) SSR build → .dommief/server.mjs
-  const ssrDir = path.join(root, '.dommief');
+  // (b) SSR build → .dommief/server/server.mjs.
+  // KHÔNG dùng `.dommief` thẳng làm outDir: `emptyOutDir: true` xóa SẠCH thư mục đó trước
+  // mỗi build, mà `.dommief/theme/**` (override của user, DM-502) và `.dommief/cache/**`
+  // (DM-406) cũng sống trong `.dommief`. Xóa cả hai là mất dữ liệu người dùng mỗi lần build.
+  const ssrDir = path.join(root, '.dommief', 'server');
   fs.mkdirSync(ssrDir, { recursive: true });
   await timed('ssr', () => build({
     root,
