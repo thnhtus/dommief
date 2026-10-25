@@ -10,6 +10,7 @@ import type { PluginHookHost } from './plugins.js';
 import type { Logger } from './log.js';
 import type { Route } from './types.js';
 import { collect, check, formatIssues } from './link-check.js';
+import { TransformCache } from './cache.js';
 import type { TocItem } from './markdown/index.js';
 
 const ROOT_PLACEHOLDER = /<div id="root"><\/div>/;
@@ -92,7 +93,9 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     const t0 = performance.now();
     try { return await fn(); } finally { timings.push({ stage, ms: performance.now() - t0 }); }
   };
-  const plugins = () => [dommiefPlugin({ root, config, host })];
+  // DM-406: cache nằm ở `.dommief/cache` (KHÔNG nằm trong `.dommief/server`, vì thư mục đó bị emptyOutDir mỗi build).
+  const cache = new TransformCache(path.join(root, '.dommief', 'cache'), config.cache);
+  const plugins = () => [dommiefPlugin({ root, config, host, cache })];
   const distDir = path.resolve(root, config.outDir);
 
   // (a) client build → outDir/
@@ -171,6 +174,11 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes, log }); });
   await timed('plugins', () => host.runBuildEnd({ config, outDir: distDir, routes }));
 
+  cache.finish();
+  if (config.cache) {
+    log.info(cache.summary());
+    if (log.verbose) for (const [f, why] of Object.entries(cache.stats.missReasons)) log.info(`  miss ${path.relative(root, f)} (${why})`);
+  }
   if (log.verbose) log.info(formatTimings(timings));
   log.info('build done');
 }
