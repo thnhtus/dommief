@@ -31,7 +31,24 @@ export const ConfigSchema = z
     forceKebabCase: z.boolean().default(true),
     locales: z.array(LocaleInputSchema).default([{ id: 'en-US', name: 'English' }]),
     themeConfig: z.record(z.string(), z.unknown()).default({}),
-    ssg: z.object({ concurrency: z.number().int().positive().default(4) }).default({ concurrency: 4 }),
+    ssg: z
+      .object({
+        concurrency: z.number().int().positive().default(4),
+        /** Route không prerender nhưng VẪN phát shell (REVIEW §1 #17). Pattern: path chính xác hoặc `/prefix/*`. */
+        exclude: z.array(z.string()).default([]),
+        /** Route không phát file nào. */
+        noEmit: z.array(z.string()).default([]),
+      })
+      .default({ concurrency: 4, exclude: [], noEmit: [] }),
+    /** Cache transform md theo content-hash (DM-406). `--no-cache` tắt. */
+    cache: z.boolean().default(true),
+    /** Kiểm link nội bộ chết lúc build (DM-410). `--no-link-check` tắt. */
+    linkCheck: z.boolean().default(true),
+    dev: z.object({ port: z.number().int().positive().default(5173) }).default({ port: 5173 }),
+    /** sitemap.xml + robots.txt (DM-708): chỉ phát khi có `hostname`. */
+    sitemap: z.object({ hostname: z.string().url().optional() }).default({}),
+    /** Search index (DM-801). */
+    search: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
     plugins: z.array(z.any()).default([]),
   })
   .strict();
@@ -47,13 +64,18 @@ export interface ResolvedConfig extends RouteConfig {
   base: string;
   outDir: string;
   themeConfig: Record<string, unknown>;
-  ssg: { concurrency: number };
+  ssg: { concurrency: number; exclude: string[]; noEmit: string[] };
+  cache: boolean;
+  linkCheck: boolean;
+  dev: { port: number };
+  sitemap: { hostname?: string };
+  search: { enabled: boolean };
   plugins?: DommiefPlugin[];
 }
 
 export interface ResolveOptions {
   cwd: string;
-  cli?: { base?: string | undefined; outDir?: string | undefined };
+  cli?: { base?: string | undefined; outDir?: string | undefined; cache?: boolean | undefined; linkCheck?: boolean | undefined };
   env?: Record<string, string | undefined>;
   /** Path of the loaded config file; only used to name the source in errors. */
   configFile?: string | undefined;
@@ -96,6 +118,9 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     merged[key] = value;
     sources[key] = source;
   };
+  // cac: `--no-cache` ⇒ cache === false. Chỉ `false` mới ghi đè; undefined/true giữ giá trị file.
+  if (opts.cli?.cache === false) { merged.cache = false; sources.cache = '--no-cache'; }
+  if (opts.cli?.linkCheck === false) { merged.linkCheck = false; sources.linkCheck = '--no-link-check'; }
   layer('base', opts.cli?.base, '--base');
   layer('outDir', opts.cli?.outDir, '--out-dir');
   layer('base', opts.env?.DOMMIEF_BASE, 'DOMMIEF_BASE'); // env beats CLI (CONFIG §3.1) — on purpose
@@ -139,6 +164,11 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     locales,
     themeConfig: c.themeConfig,
     ssg: c.ssg,
+    cache: c.cache,
+    linkCheck: c.linkCheck,
+    dev: c.dev,
+    sitemap: c.sitemap.hostname === undefined ? {} : { hostname: c.sitemap.hostname },
+    search: c.search,
     plugins: (c.plugins ?? []) as DommiefPlugin[],
   };
   if (c.description !== undefined) config.description = c.description;
