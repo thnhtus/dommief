@@ -4,7 +4,7 @@ import path from 'node:path';
 import { loadConfig, type ResolvedConfig } from '../config.js';
 import { createPluginHost, type PluginHookHost } from '../plugins.js';
 import { transformMarkdown } from '../markdown/index.js';
-import { resolveClientFile } from '../paths.js';
+import { resolveClientFile, resolveThemeApiFile } from '../paths.js';
 import { dommiefRoutesPlugin } from './routesPlugin.js';
 import { dommiefSitePlugin } from './sitePlugin.js';
 import { createState } from './state.js';
@@ -38,6 +38,11 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         loaded = { config, host: createPluginHost(config.plugins ?? []) };
       }
       const aliases = buildAliasChain(opts.root, loaded.config);
+      // `package.json` export `./theme-api` trỏ `dist/theme-api.js`; theme (vd theme-default) import
+      // `dommief/theme-api` phải trúng file NGUỒN mà entry-client/entry-server import (resolveClientFile
+      // luôn chọn source), nếu không sẽ ra 2 module khác nhau → `SiteContext` khác nhau →
+      // `useSiteData()`/`useNavData()` trong theme luôn rỗng (xem paths.ts).
+      aliases['dommief/theme-api'] = resolveThemeApiFile();
       return {
         base: loaded.config.base,
         resolve: { dedupe: ['react', 'react-dom', 'react-router'], alias: aliases },
@@ -93,12 +98,16 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       return out;
     } },
     configureServer(server) {
+      // DM-502: thêm/xoá file trong `.dommief/theme/**` phải đăng ký lại alias KHÔNG restart server.
+      // Alias cũ đã bị các module khác import tĩnh ⇒ không cách nào HMR theo chuẩn, phải full-reload.
+      const localThemeDir = winPath(path.resolve(opts.root, '.dommief', 'theme')) + '/';
       const update = () => {
         const aliases = buildAliasChain(opts.root, loaded!.config);
         server.config.resolve.alias = { ...(server.config.resolve.alias as any), ...aliases };
+        server.ws.send({ type: 'full-reload' });
       };
-      server.watcher.on('add', (f) => { if (String(f).includes('.dommief') || String(f).includes('theme-default')) update(); });
-      server.watcher.on('unlink', (f) => { if (String(f).includes('.dommief') || String(f).includes('theme-default')) update(); });
+      server.watcher.on('add', (f) => { if (winPath(f).startsWith(localThemeDir)) update(); });
+      server.watcher.on('unlink', (f) => { if (winPath(f).startsWith(localThemeDir)) update(); });
     },
   };
   return [markdownPlugin, dommiefRoutesPlugin(state), dommiefSitePlugin(state)] as Plugin[];

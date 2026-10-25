@@ -20,27 +20,29 @@ export function RouteLoading() {
 export function createAppRoutes(routes: RouteModule[]) {
   return function AppRoutes() {
     return (
-            <GlobalLayout>
-                <Routes>
-                    {routes.map((r) => {
-                        const Page = r.component as ComponentType;
-                        return (
-                            <Route
-                                key={r.id}
-                                path={r.path}
-                                element={
-                                    <Suspense fallback={<RouteLoading />}>
-                                        <DocLayout>
-                                            <Page />
-                                        </DocLayout>
-                                    </Suspense>
-                                }
-                            />
-                        );
-                    })}
-                    <Route path="*" element={<NotFound />} />
-                </Routes>
-            </GlobalLayout>
+      <GlobalLayout>
+        <Routes>
+          {routes.map((r) => {
+            // SAFETY: RouteModule.component là React.LazyExoticComponent (CONTRACTS §5); typed `unknown` vì repo không có @types/react.
+            const Page = r.component as ComponentType;
+            return (
+              <Route
+                key={r.id}
+                path={r.path}
+                element={
+                  <Suspense fallback={<RouteLoading />}>
+                    <DocLayout>
+                      <Page />
+                    </DocLayout>
+                  </Suspense>
+                }
+              />
+            );
+          })}
+          {/* THEME-API §6: NotFound KHÔNG nằm trong DocLayout (không phải trang tài liệu). */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </GlobalLayout>
     );
   };
 }

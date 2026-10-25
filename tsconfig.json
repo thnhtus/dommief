@@ -8,7 +8,9 @@
       "dommief": ["./packages/core/src/index.ts"],
       "dommief/theme-api": ["./packages/core/src/theme-api.tsx"],
       "dommief/theme": ["./packages/theme-default/src/index.ts"],
-      "dommief/theme/*": ["./packages/theme-default/src/*"],
+      "dommief/theme/slots/*": ["./packages/theme-default/src/slots/*.tsx", "./packages/theme-default/src/slots/*.ts"],
+      "dommief/theme/layouts/*": ["./packages/theme-default/src/layouts/*.tsx", "./packages/theme-default/src/layouts/*.ts"],
+      "dommief/theme/builtins/*": ["./packages/theme-default/src/builtins/*.tsx", "./packages/theme-default/src/builtins/*.ts"],
       "dommief/client": ["./packages/core/src/client/index.tsx"]
     }
   },

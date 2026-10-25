@@ -15,3 +15,24 @@ export function resolveClientFile(name: string): string {
   }
   return hit;
 }
+
+/**
+ * Absolute path tới `theme-api.tsx` NGUỒN (không phải `dist/theme-api.js`).
+ *
+ * Quan trọng: `package.json` export `./theme-api` trỏ `dist/theme-api.js`, nhưng `entry-client`/
+ * `entry-server` (bản thân `dommief/client`, luôn là SOURCE) import `theme-api` qua đường dẫn
+ * tương đối `../theme-api.js` — tức là SOURCE. Nếu theme-default import `dommief/theme-api`
+ * (qua alias package) mà Vite resolve ra `dist/theme-api.js`, đó là MỘT module KHÁC với
+ * `SiteContext`/`createContext` riêng — `SiteProvider` (trong entry) set context nguồn, còn
+ * `useSiteData()` (trong theme, qua dist) đọc context đích khác, luôn `null`. Hậu quả quan
+ * sát được: `Navbar`/`Sidebar` render rỗng dù `virtual:dommief/site` có đầy đủ dữ liệu.
+ * Vite plugin phải alias `dommief/theme-api` → đúng file này để luôn chỉ có MỘT instance.
+ */
+export function resolveThemeApiFile(): string {
+  const candidates = ['./theme-api.tsx', '../src/theme-api.tsx'].map((rel) => fileURLToPath(new URL(rel, import.meta.url)));
+  const hit = candidates.find((p) => fs.existsSync(p));
+  if (!hit) {
+    throw new DommiefError(`không tìm thấy theme-api.tsx của dommief (đã thử: ${candidates.join(', ')})`, { code: 'client_entry_missing' });
+  }
+  return hit;
+}
