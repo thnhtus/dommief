@@ -2,7 +2,21 @@ import { visit } from 'unist-util-visit';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { parse as parseDocgen, withDefaultConfig } from 'react-docgen-typescript';
+import { createRequire } from 'node:module';
+import { DommiefError } from './errors.js';
+
+// Nạp react-docgen-typescript (kéo theo cả TypeScript) CHỈ khi trang có `<API>`: import ở đầu file
+// làm mọi site crash lúc khởi động nếu typescript cài được không có API JS cũ (TS 7).
+let docgen: typeof import('react-docgen-typescript') | undefined;
+function loadDocgen(): typeof import('react-docgen-typescript') {
+  if (docgen) return docgen;
+  try {
+    docgen = createRequire(import.meta.url)('react-docgen-typescript');
+    return docgen!;
+  } catch (e) {
+    throw new DommiefError(`<API> cần react-docgen-typescript + typescript 5.x: ${(e as Error).message}`, { code: 'api_docgen_unavailable' });
+  }
+}
 
 export interface ApiProp {
   name: string;
@@ -48,12 +62,13 @@ export function buildApiTable(src: string, filePath: string = ''): ApiEntry[] | 
   const cached = apiCache.get(abs);
   if (cached && cached.hash === hash) return cached.entries;
 
+  // loadDocgen() ngoài try: thiếu/sai bản typescript phải báo lỗi, không được nuốt thành "No API data".
+  const parser = loadDocgen().withDefaultConfig({});
   let docs: any[] = [];
   try {
-    const parser = withDefaultConfig({});
     docs = parser.parse(abs) ?? [];
   } catch {
-    docs = [];
+    docs = []; // file không parse được (cú pháp lỗi) → bảng rỗng
   }
 
   const entries: ApiEntry[] = (docs || []).map((d: any) => ({

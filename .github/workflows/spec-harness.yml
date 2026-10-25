@@ -16,7 +16,7 @@ jobs:
         with:
           version: 11.1.2
       - uses: actions/setup-node@v5
-        with: { node-version: '24' }
+        with: { node-version: '24', package-manager-cache: false }
       # --preflight trước: config tự mâu thuẫn (hoặc repos[].path sai) thì mọi
       # check sau im lặng no-op. Bao gồm --self-check.
       - run: node scripts/validate-tasks.mjs --preflight
