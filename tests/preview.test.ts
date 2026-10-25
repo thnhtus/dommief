@@ -55,6 +55,11 @@ describe('preview (DM-411)', () => {
       expect(resExcluded.status).toBe(200);
       expect(await resExcluded.text()).not.toContain('KHONG-DUOC-XUAT-HIEN-O-SHELL');
 
+      // URL chưa từng build: như static host thật — 404.html + status 404 (không phải shell trang chủ).
+      const resMissing = await fetch(`${origin}/sub/khong-co-trang-nay`);
+      expect(resMissing.status).toBe(404);
+      expect(await resMissing.text()).toContain('<h1>404</h1>');
+
       // (§3) base '/sub/': GET '/sub/' -> 200; GET '/' -> không phải 200 HTML trang chủ.
       const resRoot = await fetch(`${origin}/sub/`);
       expect(resRoot.status).toBe(200);

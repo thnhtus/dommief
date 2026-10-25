@@ -10,3 +10,7 @@
 .toc { position: sticky; top: var(--dm-navbar-height); align-self: start; display: flex; flex-direction: column; gap: var(--dm-space-2); font-size: 0.875rem; }
 .footer { text-align: center; padding: var(--dm-space-5); color: var(--dm-c-text-note); border-top: 1px solid var(--dm-c-border-light); }
 @media (max-width: 960px) { .doc { grid-template-columns: minmax(0, 1fr); } .sidebar, .toc { position: static; } }
+/* Màn hẹp: navbar được xuống dòng thay vì đẩy nút đổi giao diện ra ngoài viewport (tràn 30–55px ở
+   320–360px, bắt bằng e2e). Sidebar/TOC đã `position: static` ở breakpoint trên nên chiều cao navbar
+   tăng không lệch offset sticky nào. */
+@media (max-width: 600px) { .navbar { flex-wrap: wrap; height: auto; min-height: var(--dm-navbar-height); row-gap: var(--dm-space-2); padding-block: var(--dm-space-2); } }

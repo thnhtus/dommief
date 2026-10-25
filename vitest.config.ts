@@ -23,5 +23,6 @@ export default defineConfig({
       { find: /^dommief\/theme\/builtins\/(.*)$/, replacement: root('packages/theme-default/src/builtins/$1') },
     ],
   },
-  test: { globalSetup: ['./tests/global-setup.ts'] },
+  // e2e/ là của Playwright (`pnpm test:e2e`) — vitest không được nhặt.
+  test: { globalSetup: ['./tests/global-setup.ts'], exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'] },
 });

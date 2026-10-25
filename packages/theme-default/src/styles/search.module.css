@@ -1,4 +1,4 @@
-.search { position: relative; margin-inline-start: auto; }
+.search { position: relative; margin-inline-start: auto; min-width: 0; }
 .search + button { margin-inline-start: var(--dm-space-3); }
 .input { width: 14rem; max-width: 40vw; padding: var(--dm-space-1) var(--dm-space-3); background: var(--dm-c-bg-subtle); color: var(--dm-c-text); border: 1px solid var(--dm-c-border); border-radius: var(--dm-radius-sm); font: inherit; }
 .input:focus-visible { outline: 2px solid var(--dm-c-primary); outline-offset: 1px; }

@@ -28,6 +28,12 @@ describe('dommief build (fixture site, base /sub/)', () => {
     }
   });
 
+  it('mỗi trang có <meta viewport> (thiếu thì mobile render như desktop 980px)', () => {
+    for (const f of ['index.html', 'guide/get-started/index.html', '404.html']) {
+      expect(read(f), f).toMatch(/<meta name="viewport" content="width=device-width/);
+    }
+  });
+
   it('code block tsx thường là code; ```tsx demo thành DumiDemo, không crash', () => {
     const html = read('guide/get-started/index.html');
     expect(html).toContain('plain-code-marker');
