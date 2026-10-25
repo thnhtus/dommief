@@ -3,14 +3,14 @@ import { useLocation } from 'react-router';
 import type { NavItem, PageSummary, SidebarGroup, SiteData } from './types.js';
 import { PREFERS_COLOR_ATTR, PREFERS_COLOR_STORAGE_KEY, type ColorValue, type PrefersColorValue } from './prefers-color.js';
 import { SearchClient, wrapRealWorker } from './client/search-client.js';
-import type { SearchHit, SearchManifest } from './client/search-core.js';
+import type { SearchManifest, SearchResult } from './client/search-core.js';
 
 export type { SiteData, NavItem, SidebarGroup, TocEntry, PageSummary } from './types.js';
 export { PREFERS_COLOR_ATTR, PREFERS_COLOR_STORAGE_KEY, PREFERS_COLOR_BOOT_SCRIPT, resolveConfiguredColor } from './prefers-color.js';
 export type { ColorValue, PrefersColorValue } from './prefers-color.js';
 export { ClientOnly } from './client/ClientOnly.js';
 export type { ClientOnlyProps } from './client/ClientOnly.js';
-export type { SearchHit, SearchManifest } from './client/search-core.js';
+export type { SearchHit, SearchManifest, SearchResult } from './client/search-core.js';
 
 export const SiteContext = createContext<SiteData | null>(null);
 
@@ -43,44 +43,67 @@ export function useRouteMeta(): PageSummary {
 }
 
 export interface UseSiteSearchResult {
-  search: (query: string) => Promise<SearchHit[]>;
+  /** `error`: thông điệp an toàn (DM-802 fail-open) — UI hiển thị "không tìm được" thay vì
+   * coi nhầm là "không có kết quả". `superseded`: query này đã bị một query mới hơn thay
+   * thế (UI nên bỏ qua, KHÔNG hiển thị "không tìm thấy" chớp nhoáng — review #8). */
+  search: (query: string) => Promise<SearchResult>;
   loading: boolean;
 }
 
 /** DM-802/803: Web Worker CHỈ được tạo khi có truy vấn đầu tiên (không tải ở lúc boot trang —
  * tiêu chí DM-803 #4). SSR không có `Worker`: `search()` trả `[]` thay vì throw — hàm này luôn
  * được gọi ở event handler phía client (gõ vào ô tìm kiếm), không phải trong render path
- * nên nhánh SSR thực tế không chạy, nhưng vẫn giữ an toàn nếu ai đó gọi trái quy ước. */
+ * nên nhánh SSR thực tế không chạy, nhưng vẫn giữ an toàn nếu ai đó gọi trái quy ước.
+ *
+ * `clientPromiseRef` (KHÔNG phải instance) — review #2: hai lần gọi `search()` gần nhau (debounce
+ * không đảm bảo tuần tự giữa 2 keystroke liên tiếp qua React) đều thấy `clientRef.current`
+ * là null nếu chỉ lưu instance sau khi `await import()` xong — tạo 2 `Worker`, cái bị ghi đè
+ * không ai `terminate()`. Lưu promise để lần gọi thứ 2 đợi chung lần tạo đầu. */
 export function useSiteSearch(): UseSiteSearchResult {
   const site = useSiteData();
   const { pathname } = useLocation();
   const locale = localeIdFor(site, pathname);
-  const clientRef = useRef<SearchClient | null>(null);
+  const clientPromiseRef = useRef<Promise<SearchClient | null> | null>(null);
+  const unmountedRef = useRef(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => () => { clientRef.current?.dispose(); clientRef.current = null; }, []);
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      void clientPromiseRef.current?.then((c) => c?.dispose());
+      clientPromiseRef.current = null;
+    };
+  }, []);
 
   const ensureClient = useMemo(() => {
-    return async (): Promise<SearchClient | null> => {
-      if (clientRef.current) return clientRef.current;
-      if (typeof Worker === 'undefined') return null; // SSR / môi trường không có Worker.
+    return (): Promise<SearchClient | null> => {
+      if (clientPromiseRef.current) return clientPromiseRef.current;
+      if (typeof window === 'undefined' || typeof Worker === 'undefined') { clientPromiseRef.current = Promise.resolve(null); return clientPromiseRef.current; } // SSR.
       setLoading(true);
-      try {
-        const manifestMod = (await import('virtual:dommief/search-index')) as { default: SearchManifest };
-        const worker = new Worker(new URL('dommief/search-worker', import.meta.url), { type: 'module' });
-        const client = new SearchClient(wrapRealWorker(worker), manifestMod.default);
-        clientRef.current = client;
-        return client;
-      } finally {
-        setLoading(false);
-      }
+      const promise = (async () => {
+        try {
+          const manifestMod = (await import('virtual:dommief/search-index')) as { default: SearchManifest };
+          if (!Object.keys(manifestMod.default.locales).length) return null; // search.enabled === false.
+          const worker = new Worker(new URL('dommief/search-worker', import.meta.url), { type: 'module' });
+          const client = new SearchClient(wrapRealWorker(worker), manifestMod.default);
+          // Component đã unmount trong lúc `await import()` đang chạy: cleanup đã chạy xong trước
+          // khi worker được tạo — huỷ ngay, đừng để worker sống sót sau unmount (review #2).
+          if (unmountedRef.current) { client.dispose(); return null; }
+          return client;
+        } finally {
+          setLoading(false);
+        }
+      })();
+      clientPromiseRef.current = promise;
+      return promise;
     };
   }, []);
 
   const search = useMemo(() => {
-    return async (query: string): Promise<SearchHit[]> => {
+    return async (query: string) => {
       const client = await ensureClient();
-      if (!client) return [];
+      if (!client) return { hits: [] };
       return client.search(query, locale);
     };
   }, [ensureClient, locale]);

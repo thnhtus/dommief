@@ -8,7 +8,11 @@ import { SearchCore, type SearchManifest } from './search-core.js';
 
 export interface SearchWorkerRequest { id: number; type: 'search'; query: string; locale: string }
 export interface SearchWorkerInitMessage { type: 'init'; manifest: SearchManifest }
-export type SearchWorkerInbound = SearchWorkerRequest | SearchWorkerInitMessage;
+/** Đổi locale (DM-802 tiêu chí #3): huỷ cache index của locale cũ TRONG worker — không chỉ dừng
+ * ở API SearchCore.dropLocale mà phải có đường dẫn message thật từ main thread gọi tới, nếu
+ * không index cũ nằm lại trong bộ nhớ worker mãi (review #5). */
+export interface SearchWorkerDropLocaleMessage { type: 'dropLocale'; locale: string }
+export type SearchWorkerInbound = SearchWorkerRequest | SearchWorkerInitMessage | SearchWorkerDropLocaleMessage;
 
 export interface SearchWorkerResponse { id: number; hits: unknown[]; error: string | undefined }
 
@@ -24,6 +28,10 @@ self.onmessage = async (ev: MessageEvent<SearchWorkerInbound>) => {
   const msg = ev.data;
   if (msg.type === 'init') {
     core = new SearchCore(msg.manifest);
+    return;
+  }
+  if (msg.type === 'dropLocale') {
+    core?.dropLocale(msg.locale);
     return;
   }
   if (msg.type === 'search') {
