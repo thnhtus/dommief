@@ -65,3 +65,29 @@ describe('preview (DM-411)', () => {
     }
   }, 30_000);
 });
+
+// Dommief tự coi dấu chấm trong tên file là phân cách sub-route (routes.ts: `parts.flatMap((s)
+// => s.split('.'))`), nên route build qua docDirs KHÔNG BAO GIỜ có dấu chấm trong path (vd
+// "v1.2.md" -> "/guide/v1/2", không phải "/guide/v1.2" — đã thử trực tiếp). Nhưng middleware
+// SPA fallback trong preview.ts là hạ tầng chung, không nên giả định điều đó (vd plugin khác
+// có thể đăng ký route qua `modifyRoutes` với path có dấu chấm) — dựng thẳng `outDir` để
+// kiểm độc lập với pipeline build.
+describe('preview (DM-411) — route path có dấu chấm, dựng outDir tay', () => {
+  it('thử khớp file HTML TRƯỚC khi coi là asset theo đuôi file', async () => {
+    const s2 = createSite('preview-dotted');
+    fs.writeFileSync(s2.dir + '/dommief.config.ts', "export default { title: 'Fixture' };\n");
+    s2.build();
+    fs.mkdirSync(s2.dist + '/guide/v1.2', { recursive: true });
+    fs.writeFileSync(s2.dist + '/guide/v1.2/index.html', '<!doctype html><html><body>Dotted-route-marker</body></html>');
+    const server = await startPreview({ root: s2.dir, base: '/', outDir: s2.dist, port: 0 });
+    try {
+      const origin = new URL(server.resolvedUrls!.local[0]!).origin;
+      const res = await fetch(`${origin}/guide/v1.2`);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toContain('Dotted-route-marker');
+    } finally {
+      await server.close();
+      s2.cleanup();
+    }
+  }, 30_000);
+});
