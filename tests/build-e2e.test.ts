@@ -1,22 +1,17 @@
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createSite } from './helpers/fixture-site.ts';
 
 // Chạy `dommief build` thật trên fixture: bắt các lỗi mà test hàm lẻ không thấy
 // (entry không resolve, HTML trần không có script, trang crash vì thiếu import, base sai).
-const repo = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
-const site = path.join(repo, 'tests/fixtures/site');
-const dist = path.join(site, 'dist');
-const read = (rel: string) => fs.readFileSync(path.join(dist, rel), 'utf8');
+const s = createSite('build-e2e');
+const dist = s.dist;
+const read = s.read;
 
 describe('dommief build (fixture site, base /sub/)', () => {
-  beforeAll(() => {
-    execFileSync('pnpm', ['-C', 'packages/core', 'build'], { cwd: repo, stdio: 'pipe' });
-    fs.rmSync(dist, { recursive: true, force: true });
-    execFileSync('node', [path.join(repo, 'packages/core/dist/cli.js'), 'build'], { cwd: site, stdio: 'pipe' });
-  }, 180_000);
+  beforeAll(() => { s.build(); }, 180_000);
+  afterAll(() => s.cleanup());
 
   it('ghi trang lồng nhau theo kebab-case + 404.html', () => {
     expect(fs.existsSync(path.join(dist, 'index.html'))).toBe(true);

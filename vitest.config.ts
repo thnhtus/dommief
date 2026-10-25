@@ -16,5 +16,5 @@ export default defineConfig({
       { find: /^dommief\/theme\/builtins\/(.*)$/, replacement: root('packages/theme-default/src/builtins/$1') },
     ],
   },
-  test: {},
+  test: { globalSetup: ['./tests/global-setup.ts'] },
 });
