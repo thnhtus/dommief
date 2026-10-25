@@ -75,7 +75,7 @@ function spaFallbackPlugin(opts: PreviewOptions): Plugin {
         // lọc, `fetch('/sub/guide/get-started')` trả nhầm trang chủ (Vite fallback thay vì middleware
         // này xử lý). Lọc theo đuôi file: bỏ qua request rõ ràng là asset (có đuôi khác .html).
         const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0] ?? '/');
-        if (req.method !== 'GET' || /\.[a-z0-9]+$/i.test(urlPath.replace(/\.html$/i, ''))) return next();
+        if (req.method !== 'GET') return next();
         // Ngoài base: TỰ trả 404, KHÔNG `next()` — static handler của Vite (sirv) không biết về
         // `base`, nó phục vụ `index.html` ở gốc `outDir` cho BẤT KỲ path nào không khớp asset —
         // đã bắt trực tiếp: `next()` khi path ngoài base trả nhầm 200 + trang chủ (tiêu chí
@@ -86,12 +86,28 @@ function spaFallbackPlugin(opts: PreviewOptions): Plugin {
           return;
         }
         const rel = base ? urlPath.slice(base.length) || '/' : urlPath;
+        // THử tìm file HTML khớp route TRƯỚC khi quyết định next(): heuristic đuôi file cũ
+        // (`/\.[a-z0-9]+$/`) coi mọi segment cuối có dấu chấm là asset, nên route thật kiểu
+        // `/guide/v1.2` hay `/api/node.js` bị rơi về static handler và nhận lại đúng bug
+        // trailing-slash đã sửa (chưa thử khhớp đã kết luận là asset). Dùng `path.resolve`
+        // (không phải so sánh chuỗi prefix) cho traversal guard: `/dist-evil` không được
+        // qua chỉ vì cùng tiền tố ký tự với `outDir`.
+        const outDirResolved = path.resolve(opts.outDir);
+        const safe = (p: string) => {
+          const r = path.resolve(p);
+          return r === outDirResolved || r.startsWith(outDirResolved + path.sep);
+        };
         const candidates = [
           path.join(opts.outDir, rel, 'index.html'),
           path.join(opts.outDir, rel.endsWith('.html') ? rel : rel.replace(/\/$/, '') + '.html'),
         ];
-        const hit = candidates.find((p) => p.startsWith(opts.outDir) && fs.existsSync(p) && fs.statSync(p).isFile());
-        serveHtml(res, hit ?? shellPath);
+        const hit = candidates.find((p) => safe(p) && fs.existsSync(p) && fs.statSync(p).isFile());
+        if (hit) return serveHtml(res, hit);
+        // Không khớp HTML nào: request có đuôi file rõ ràng (asset thật, vd .js/.css/.png) ->
+        // nhường static handler của Vite xử lý (404 thật nếu không tồn tại); còn lại -> shell
+        // (SPA fallback cho URL client-only chưa build).
+        if (/\.[a-z0-9]+$/i.test(rel.replace(/\.html$/i, ''))) return next();
+        serveHtml(res, shellPath);
       });
     },
   };

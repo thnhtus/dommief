@@ -12,7 +12,7 @@ export interface SitemapConfig {
   exclude: string[];
 }
 
-function canonicalUrl(hostname: string, base: string, routePath: string): string {
+export function canonicalUrl(hostname: string, base: string, routePath: string): string {
   const host = hostname.replace(/\/$/, '');
   const b = base.replace(/\/$/, '');
   const p = routePath === '/' ? '/' : routePath;

@@ -8,6 +8,13 @@ const root = (p: string) => path.resolve(import.meta.dirname, p);
 
 export default defineConfig({
   resolve: {
+    // Vite plugin thật (vite/plugin.ts) đã có `dedupe: ['react','react-dom','react-router']`
+    // nhưng môi trường test KHÔNG đi qua plugin đó — thiếu dòng này, pnpm có thể resolve
+    // react-router từ hai thư mục `node_modules/.pnpm` khác nhau (vd sau khi thêm/gỡ một
+    // dependency khác đụng đến resolution tree) -> hai instance module context khác nhau ->
+    // `useLocation() may be used only in the context of a <Router>` ngay cả khi code đúng —
+    // đã bắt trực tiếp (toàn bộ `client-router.test.tsx`/`hydrate-ssr.test.tsx` đỏ cùng lúc).
+    dedupe: ['react', 'react-dom', 'react-router'],
     alias: [
       { find: /^dommief\/theme-api$/, replacement: root('packages/core/src/theme-api.tsx') },
       { find: /^dommief\/theme$/, replacement: root('packages/theme-default/src/index.ts') },

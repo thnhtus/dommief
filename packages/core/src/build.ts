@@ -12,7 +12,7 @@ import type { Route } from './types.js';
 import { collect, check, formatIssues } from './link-check.js';
 import { TransformCache } from './cache.js';
 import { matchExclude } from './exclude.js';
-import { writeSitemapAndRobots } from './sitemap.js';
+import { writeSitemapAndRobots, canonicalUrl } from './sitemap.js';
 import type { TocItem } from './markdown/index.js';
 
 const ROOT_PLACEHOLDER = /<div id="root"><\/div>/;
@@ -39,7 +39,11 @@ export class LinkCheckFailedError extends Error {
   }
 }
 
-/** Ngữ cảnh cho các bước phát file bổ sung (sitemap, robots, search index...). */
+/** Ngữ cảnh cho các bước phát file bổ sung (sitemap, robots, search index...).
+ * `routes` CHỈ chứa route đã PRERENDER thật (`plan.prerender`) — KHÔNG phải toàn bộ cây route
+ * từ SSR bundle. Route bị `ssg.exclude`/`ssg.noEmit` không có nội dung thật, nên không được
+ * vào sitemap/search index — đã bắt trực tiếp: emitter trước đây nhận `routes` toàn bộ nên
+ * `ssg.exclude` không được sitemap tôn trọng trừ khi cấu hình `sitemap.exclude` trùng (REVIEW). */
 export interface EmitContext {
   root: string;
   config: ResolvedConfig;
@@ -158,7 +162,18 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   const render: (url: string) => Promise<string> = serverMod.render ?? serverMod.default?.render;
   const site: { routes?: Record<string, { file: string }>; meta?: Record<string, { toc?: TocItem[] }> } | undefined = serverMod.site ?? serverMod.default?.site;
   const fileOf = (routeId: string): string => site?.routes?.[routeId]?.file ?? routeId;
-  const wrap = (html: string) => template.replace(ROOT_PLACEHOLDER, () => `<div id="root">${html}</div>`);
+  const canonicalHostname: string | undefined = config.sitemap === false ? undefined : config.sitemap.hostname;
+  const escapeAttr = (s: string) => s.replace(/"/g, '&quot;');
+  const wrap = (html: string, routePath: string) => {
+    let out = template.replace(ROOT_PLACEHOLDER, () => `<div id="root">${html}</div>`);
+    if (canonicalHostname && routePath !== '/404') {
+      const href = canonicalUrl(canonicalHostname, config.base, routePath);
+      if (!/<link[^>]+rel=["']canonical["']/i.test(out)) {
+        out = out.replace(/<\/head>/i, `  <link rel="canonical" href="${escapeAttr(href)}">\n</head>`);
+      }
+    }
+    return out;
+  };
   const plan = planRoutes(routes, config.ssg, log);
   const writePage = (r: Route, html: string) => {
     const targetDir = r.path === '/' ? distDir : path.join(distDir, r.path.replace(/^\//, ''));
@@ -170,12 +185,12 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     await mapLimit(plan.prerender, config.ssg.concurrency, async (r) => {
       const html = await render(r.path);
       if (linkCheckEnabled) linkRefs.push(...collect(r.id, html, fileOf(r.id)));
-      writePage(r, wrap(html));
+      writePage(r, wrap(html, r.path));
     });
-    for (const r of plan.shell) writePage(r, template);
+    for (const r of plan.shell) writePage(r, wrap(template, r.path));
     // 404.html: route "*" của cùng cây <Routes>
     try {
-      fs.writeFileSync(path.join(distDir, '404.html'), wrap(await render('/404')));
+      fs.writeFileSync(path.join(distDir, '404.html'), wrap(await render('/404'), '/404'));
     } catch (e) {
       log.warn('không render được 404.html: ' + formatError(e));
     }
@@ -194,7 +209,7 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     });
   }
 
-  for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes, log }); });
+  for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes: plan.prerender, log }); });
   await timed('plugins', () => host.runBuildEnd({ config, outDir: distDir, routes }));
 
   cache.finish();
