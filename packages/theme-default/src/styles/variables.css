@@ -75,3 +75,23 @@ th, td { border: 1px solid var(--dm-c-border); padding: var(--dm-space-2) var(--
 .dommief-heading-anchor { opacity: 0; margin-inline-end: var(--dm-space-2); }
 :is(h1, h2, h3, h4, h5, h6):hover > .dommief-heading-anchor { opacity: 1; }
 .dommief-heading-anchor::before { content: '#'; }
+
+/* THEME-API §8.3: hook CSS cho Shiki — light là mặc định, dark chỉ đổi khi
+   `[data-prefers-color='dark']` (không dùng media query, để ColorSwitch override được). */
+.dommief-code { margin: var(--dm-space-4) 0; border-radius: var(--dm-radius); overflow: hidden; border: 1px solid var(--dm-c-border-light); }
+.dommief-code__title { padding: var(--dm-space-1) var(--dm-space-3); font-size: 0.8rem; color: var(--dm-c-text-secondary); background: var(--dm-c-bg-subtle); border-bottom: 1px solid var(--dm-c-border-light); }
+.dommief-code .shiki { margin: 0; padding: var(--dm-space-4); overflow-x: auto; }
+.dommief-code .shiki span { color: var(--shiki-light); }
+.dommief-code .shiki { background-color: var(--shiki-light-bg); }
+[data-prefers-color='dark'] .dommief-code .shiki span { color: var(--shiki-dark); }
+[data-prefers-color='dark'] .dommief-code .shiki { background-color: var(--shiki-dark-bg); }
+.dommief-code .shiki .line.highlighted { background: color-mix(in srgb, var(--dm-c-primary) 15%, transparent); display: inline-block; width: 100%; }
+.dommief-code .shiki .line[data-line]::before { content: attr(data-line); display: inline-block; width: 2em; margin-inline-end: var(--dm-space-2); color: var(--dm-c-text-note); text-align: right; }
+
+/* Container thông báo (DM-703): 4 loại cố định, màu đạt AA trên cả nền light/dark. */
+.dommief-container { margin: var(--dm-space-4) 0; padding: var(--dm-space-4); border-radius: var(--dm-radius); border-inline-start: 4px solid; }
+.dommief-container__title { font-weight: 600; margin: 0 0 var(--dm-space-2); }
+.dommief-container--info { border-color: var(--dm-c-info); background: color-mix(in srgb, var(--dm-c-info) 8%, transparent); }
+.dommief-container--success { border-color: var(--dm-c-success); background: color-mix(in srgb, var(--dm-c-success) 8%, transparent); }
+.dommief-container--warning { border-color: var(--dm-c-warning); background: color-mix(in srgb, var(--dm-c-warning) 8%, transparent); }
+.dommief-container--error { border-color: var(--dm-c-error); background: color-mix(in srgb, var(--dm-c-error) 8%, transparent); }
