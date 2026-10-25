@@ -11,7 +11,7 @@ Static site generator for documentation/demo sites built on React, Vite, and Mar
 ## Packages
 
 - `packages/core` — core library, CLI, Vite plugins, markdown pipeline
-- `packages/theme-default` — default theme components (not yet wired into `AppRoutes`/rendering)
+- `packages/theme-default` — default theme components
 - `examples/docs` — demo site
 
 ## Features (phases)

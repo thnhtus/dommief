@@ -68,10 +68,27 @@ export function SearchBox() {
   const [active, setActive] = useState(-1);
 
   const reset = () => { setQuery(''); setHits([]); setStatus('idle'); setActive(-1); };
+  // Khai báo TRƯỚC effect bên dưới dùng nó — chỉ phụ thuộc `uid` (không đổi qua các lần render),
+  // eslint-plugin-react-hooks từng báo "accessed before declared" khi nó nằm sau effect mà dùng nó.
+  const optionId = (i: number) => `${uid}-opt-${i}`;
+  // Chỉ nhánh "query rỗng" là biết ngay lúc render (không phải trạng thái từ hệ thống ngoài) — dời
+  // reset đó ra đây. `setStatus('loading')` KHI query không rỗng vẫn ở trong effect (giữ nguyên):
+  // nó cũng chạy lại khi `search` đổi identity do đổi locale (điều hướng trang trong lúc đang
+  // gõ dở) — đó là phản ứng với effect thật (kích tìm lại), không phải state tính được từ
+  // render, nên eslint-plugin-react-hooks (`set-state-in-effect`) không gắn cờ nhánh này.
+  const onQueryChange = (next: string) => {
+    setQuery(next);
+    setOpen(true);
+    if (!next.trim()) { setStatus('idle'); setHits([]); setActive(-1); }
+  };
 
   useEffect(() => {
     latestQuery.current = query;
-    if (!query.trim()) { setStatus('idle'); setHits([]); setActive(-1); return; }
+    if (!query.trim()) return; // đã reset ở onQueryChange/reset() — không set state thêm ở đây
+    // Cố ý: khi `search` đổi identity (điều hướng đổi locale trong lúc đang gõ dở), effect chạy
+    // lại PHẢI bật lại 'loading' để kích tìm lại theo locale mới — không tính được từ render
+    // (rule không phân biệt được lý do hợp lệ này với state đáng lẽ không cần effect).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
     const t = setTimeout(async () => {
       const res = await search(query);
@@ -108,7 +125,6 @@ export function SearchBox() {
   // defect a11y thật, axe/ARIA validator sẽ bắt `aria-controls` trỏ tới id không tồn tại).
   const hasListbox = status === 'results';
   const expanded = open && hasListbox;
-  const optionId = (i: number) => `${uid}-opt-${i}`;
 
   const go = (hit: SearchHit) => {
     const m = /::(\d+)$/.exec(hit.sectionKey);
@@ -164,7 +180,7 @@ export function SearchBox() {
         placeholder="Tìm kiếm…"
         className={styles.input!}
         value={query}
-        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+        onChange={(e) => onQueryChange(e.target.value)}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
       />

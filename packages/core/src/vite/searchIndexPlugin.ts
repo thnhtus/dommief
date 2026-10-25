@@ -47,7 +47,7 @@ export function dommiefSearchIndexPlugin(state: DommiefState): Plugin {
           const resIdx = await buildSearchIndex({
             routes,
             loadPageMeta: async (r) => {
-              let raw = '';
+              let raw: string;
               try { raw = fs.readFileSync(r.file, 'utf8'); } catch { raw = ''; }
               const tr = await transformMarkdown(raw, r.file, { hooks: state.host(), byFile: t.byFile, base: state.config().base, code: state.config().markdown });
               return tr.meta;

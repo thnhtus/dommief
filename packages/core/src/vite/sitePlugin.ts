@@ -10,7 +10,7 @@ import type { DommiefState } from './state.js';
 // Sửa thân bài KHÔNG invalidate.
 
 function frontmatterHash(file: string): string {
-  let raw = '';
+  let raw: string;
   try { raw = readFileSync(file, 'utf8'); } catch { return ''; }
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   const block = m?.[1] ?? '';
@@ -50,7 +50,7 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
       // Một lần đọc file cho cả frontmatter lẫn toc (#12): không còn import `.md?meta` riêng
       // cho từng route, nên cả nav/sidebar lẫn `site.meta` đều ra từ cùng một parser.
       const summaries = new Map(t.routes.map((r) => {
-        let raw = '';
+        let raw: string;
         try { raw = readFileSync(r.file, 'utf8'); } catch { raw = ''; }
         return [r.id, extractPageSummary(raw, r.file, (m) => this.warn(m))] as const;
       }));
