@@ -77,3 +77,37 @@ describe('hydrate ssr', () => {
     expect(container.textContent).toContain('404');
     expect(errors.join('\n')).not.toMatch(/hydrat/i);
   });
+
+// Theme-default thật (Navbar/Sidebar/Toc/ColorSwitch) hydrate sạch khi site có nav/sidebar/toc
+// và `usePrefersColor` trả undefined ở lần render đầu (không được lệch HTML tĩnh).
+describe('hydrate ssr — với theme layout đầy đủ + dữ liệu site', () => {
+  it('trang có nav/sidebar/toc/ColorSwitch hydrate không mismatch, 404 cũng vậy', async () => {
+    const { SiteProvider } = await import('../packages/core/src/theme-api.tsx');
+    const site: any = {
+      base: '/', title: 't', locales: [{ id: 'en-US', name: 'English', base: '/', suffix: '' }], themeConfig: {},
+      routes: { 'guide/intro': { id: 'guide/intro', path: '/guide/intro', file: '/x.md' } },
+      meta: { 'guide/intro': { frontmatter: {}, toc: [{ id: 'a', depth: 1, title: 'Alpha' }] } },
+      nav: { 'en-US': [{ title: 'Intro', link: '/guide/intro', order: 0, activePath: '/guide/intro' }] },
+      sidebar: { 'en-US': [{ title: 'guide', order: 0, children: [{ title: 'Intro', link: '/guide/intro', order: 0 }] }] },
+    };
+    const routes = [page('guide/intro', '/guide/intro', 'INTRO-THEMED')];
+    await Promise.all(routes.map((r) => r.preload()));
+    const AppRoutes = createAppRoutes(routes);
+    for (const location of ['/guide/intro', '/khong-co']) {
+      const html = renderToString(<SiteProvider value={site}><StaticRouter location={location}><AppRoutes /></StaticRouter></SiteProvider>);
+      expect(html).toContain('aria-label="Main"');
+      expect(html, location).toContain('id="main"'); // skip-link luôn có đích, kể cả trang 404
+      expect(html).toContain('aria-label="Đổi giao diện sáng/tối"'); // ColorSwitch: nhãn trung tính ở render đầu
+      const container = document.createElement('div');
+      container.appendChild(document.createRange().createContextualFragment(html));
+      document.body.appendChild(container);
+      const errors: unknown[] = [];
+      const orig = console.error;
+      console.error = (...args: unknown[]) => errors.push(args[0]);
+      hydrateRoot(container, <SiteProvider value={site}><MemoryRouter initialEntries={[location]}><AppRoutes /></MemoryRouter></SiteProvider>);
+      await new Promise((r) => setTimeout(r, 30));
+      console.error = orig;
+      expect(errors.join('\n'), location).not.toMatch(/hydrat|did not match|mismatch/i);
+    }
+  });
+});

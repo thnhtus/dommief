@@ -4,11 +4,18 @@ import path from 'node:path';
 import { loadConfig, type ResolvedConfig } from '../config.js';
 import { createPluginHost, type PluginHookHost } from '../plugins.js';
 import { transformMarkdown } from '../markdown/index.js';
-import { resolveClientFile } from '../paths.js';
+import { resolveClientFile, resolveThemeApiFile } from '../paths.js';
 import { dommiefRoutesPlugin } from './routesPlugin.js';
 import { dommiefSitePlugin } from './sitePlugin.js';
 import { createState } from './state.js';
 import { winPath } from '../utils/path.js';
+import { buildAliasChain } from '../theme/resolver.js';
+// Import từ prefers-color.js (KHÔNG phải theme-api.js): file này chạy trong tiến trình
+// Node của CLI (build-time), không qua bundle SSR của Vite. Import trực tiếp theme-api.tsx
+// (có JSX + hook 'react') từng nạp 'react' vào tiến trình CLI qua đường khác với bản mà
+// server.mjs dùng để renderToPipeableStream → 2 dispatcher react khác nhau →
+// `TypeError: dispatcher.getOwner is not a function` (đã bắt trực tiếp, không phải suy đoán).
+import { PREFERS_COLOR_ATTR, PREFERS_COLOR_BOOT_SCRIPT, resolveConfiguredColor, type PrefersColorValue } from '../prefers-color.js';
 
 export interface DommiefPluginOptions {
   root: string;
@@ -36,11 +43,15 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         const config = await loadConfig(opts.root);
         loaded = { config, host: createPluginHost(config.plugins ?? []) };
       }
+      const aliases = buildAliasChain(opts.root, loaded.config);
+      // `package.json` export `./theme-api` trỏ `dist/theme-api.js`; theme (vd theme-default) import
+      // `dommief/theme-api` phải trúng file NGUỒN mà entry-client/entry-server import (resolveClientFile
+      // luôn chọn source), nếu không sẽ ra 2 module khác nhau → `SiteContext` khác nhau →
+      // `useSiteData()`/`useNavData()` trong theme luôn rỗng (xem paths.ts).
+      aliases['dommief/theme-api'] = resolveThemeApiFile();
       return {
         base: loaded.config.base,
-        // một bản react/router duy nhất giữa trang md (nằm trong dự án) và client/ của dommief
-        resolve: { dedupe: ['react', 'react-dom', 'react-router'] },
-        // client/*.tsx của dommief là source TS: SSR phải bundle nó, không được externalize.
+        resolve: { dedupe: ['react', 'react-dom', 'react-router'], alias: aliases },
         ssr: { noExternal: ['dommief'] },
       };
     },
@@ -87,11 +98,35 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       if (!/<title>/.test(out)) out = out.replace('<head>', `<head><title>${title}</title>`);
       const tags = state.host().collectHtmlHeadTags();
       if (tags.length) out = out.replace('</head>', tags.join('\n') + '</head>');
+      // THEME-API §9.2 + Amendment #1: inline script < 1KB, KHÔNG `async`/`defer`, chạy trước
+      // paint để không nháy sáng rồi sang tối. Nếu `themeConfig.prefersColor.default` khác
+      // 'auto', SSR ghi thẳng `data-prefers-color` vào `<html>` để trang đúng màu ngay cả khi
+      // tắt JS (gate Phase 4) — inline script chỉ GHI ĐÈ khi localStorage có lựa chọn khác.
+      const themeConfig = state.config().themeConfig as { prefersColor?: { default?: PrefersColorValue } } | undefined;
+      const configuredColor = resolveConfiguredColor(themeConfig?.prefersColor?.default);
+      if (configuredColor && !/data-prefers-color=/.test(out)) {
+        out = out.replace(/<html(\s|>)/, `<html ${PREFERS_COLOR_ATTR}="${configuredColor}"$1`);
+      }
+      if (!out.includes(PREFERS_COLOR_BOOT_SCRIPT)) {
+        out = out.replace('</head>', `<script>${PREFERS_COLOR_BOOT_SCRIPT}</script></head>`);
+      }
       if (!out.includes('virtual:dommief/entry')) {
         out = out.replace('</body>', `<script type="module" src="/virtual:dommief/entry"></script></body>`);
       }
       return out;
     } },
+    configureServer(server) {
+      // DM-502: thêm/xoá file trong `.dommief/theme/**` phải đăng ký lại alias KHÔNG restart server.
+      // Alias cũ đã bị các module khác import tĩnh ⇒ không cách nào HMR theo chuẩn, phải full-reload.
+      const localThemeDir = winPath(path.resolve(opts.root, '.dommief', 'theme')) + '/';
+      const update = () => {
+        const aliases = buildAliasChain(opts.root, loaded!.config);
+        server.config.resolve.alias = { ...(server.config.resolve.alias as any), ...aliases };
+        server.ws.send({ type: 'full-reload' });
+      };
+      server.watcher.on('add', (f) => { if (winPath(f).startsWith(localThemeDir)) update(); });
+      server.watcher.on('unlink', (f) => { if (winPath(f).startsWith(localThemeDir)) update(); });
+    },
   };
   return [markdownPlugin, dommiefRoutesPlugin(state), dommiefSitePlugin(state)] as Plugin[];
 }

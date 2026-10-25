@@ -31,6 +31,7 @@ export const ConfigSchema = z
     forceKebabCase: z.boolean().default(true),
     locales: z.array(LocaleInputSchema).default([{ id: 'en-US', name: 'English' }]),
     themeConfig: z.record(z.string(), z.unknown()).default({}),
+    theme: z.string().default('dommief-theme-default'),
     ssg: z
       .object({
         concurrency: z.number().int().positive().default(4),
@@ -64,6 +65,7 @@ export interface ResolvedConfig extends RouteConfig {
   base: string;
   outDir: string;
   themeConfig: Record<string, unknown>;
+  theme: string;
   ssg: { concurrency: number; exclude: string[]; noEmit: string[] };
   cache: boolean;
   linkCheck: boolean;
@@ -163,6 +165,7 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     forceKebabCase: c.forceKebabCase,
     locales,
     themeConfig: c.themeConfig,
+    theme: c.theme,
     ssg: c.ssg,
     cache: c.cache,
     linkCheck: c.linkCheck,

@@ -1,0 +1,77 @@
+/* THEME-API §9.1: bề mặt công khai — đổi tên biến = breaking change. Mọi màu chữ/trạng thái
+   đều >= 4.5:1 trên nền tương ứng (WCAG AA); các mã cũ #1677ff/#208a41/#d59200/#8a9099 TRƯỢT AA. */
+:root {
+  color-scheme: light;
+  --dm-c-primary: #1677ff;
+  --dm-c-primary-hover: #4096ff;
+  --dm-c-info: #0958d9;
+  --dm-c-success: #1a7f37;
+  --dm-c-warning: #8a5a00;
+  --dm-c-error: #ce1f31;
+  --dm-c-text: #30363f;
+  --dm-c-text-secondary: #4f5866;
+  --dm-c-text-note: #6b7280;
+  --dm-c-bg: #fff;
+  --dm-c-bg-subtle: #f7f9fb;
+  --dm-c-bg-code: #f6f8fa;
+  --dm-c-border: #d0d5d8;
+  --dm-c-border-light: #e4e9ec;
+  --dm-space-1: 4px;
+  --dm-space-2: 8px;
+  --dm-space-3: 12px;
+  --dm-space-4: 16px;
+  --dm-space-5: 24px;
+  --dm-space-6: 48px;
+  --dm-layout-max-width: 1392px;
+  --dm-sidebar-width: 232px;
+  --dm-navbar-height: 64px;
+  --dm-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --dm-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --dm-font-size-base: 16px;
+  --dm-line-height: 1.75;
+  --dm-radius-sm: 4px;
+  --dm-radius: 8px;
+  --dm-z-navbar: 100;
+  --dm-z-sidebar: 90;
+  --dm-z-mask: 800;
+  --dm-z-popup: 1000;
+}
+
+/* THEME-API §9.2: nguồn trạng thái duy nhất là attribute `data-prefers-color` trên <html>. */
+:root[data-prefers-color='dark'] {
+  color-scheme: dark;
+  --dm-c-primary: #4096ff;
+  --dm-c-primary-hover: #69b1ff;
+  --dm-c-info: #69b1ff;
+  --dm-c-success: #52c41a;
+  --dm-c-warning: #e0a526;
+  --dm-c-error: #ff7875;
+  --dm-c-text: #c8ccd3;
+  --dm-c-text-secondary: #a6adba;
+  --dm-c-text-note: #8b93a1;
+  --dm-c-bg: #14161a;
+  --dm-c-bg-subtle: #1b1e23;
+  --dm-c-bg-code: #1f2328;
+  --dm-c-border: #3a3f47;
+  --dm-c-border-light: #2a2e35;
+}
+
+html { background: var(--dm-c-bg); color: var(--dm-c-text); font-family: var(--dm-font-sans); font-size: var(--dm-font-size-base); line-height: var(--dm-line-height); }
+body { margin: 0; }
+a { color: var(--dm-c-primary); }
+a:hover { color: var(--dm-c-primary-hover); }
+pre, code { font-family: var(--dm-font-mono); }
+pre { background: var(--dm-c-bg-code); padding: var(--dm-space-4); border-radius: var(--dm-radius); overflow-x: auto; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid var(--dm-c-border); padding: var(--dm-space-2) var(--dm-space-3); }
+
+/* THEME-API §6 a11y #5: focus-visible luôn thấy được trên mọi phần tử tương tác. */
+:focus-visible { outline: 2px solid var(--dm-c-primary); outline-offset: 2px; }
+
+/* THEME-API §6 a11y #1: skip-link ẩn ngoài màn hình, hiện khi nhận focus bàn phím. */
+.dm-skip { position: absolute; left: -9999px; top: 0; z-index: var(--dm-z-popup); background: var(--dm-c-bg); color: var(--dm-c-text); padding: var(--dm-space-2) var(--dm-space-4); }
+.dm-skip:focus { left: var(--dm-space-2); top: var(--dm-space-2); }
+
+.dommief-heading-anchor { opacity: 0; margin-inline-end: var(--dm-space-2); }
+:is(h1, h2, h3, h4, h5, h6):hover > .dommief-heading-anchor { opacity: 1; }
+.dommief-heading-anchor::before { content: '#'; }
