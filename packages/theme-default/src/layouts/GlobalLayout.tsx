@@ -1,4 +1,6 @@
 import React from 'react';
+// Biến CSS công khai (THEME-API §9.1) + dark mode: nạp 1 lần ở layout gốc.
+import '../styles/variables.css';
 // THEME-API §3: luôn import slot qua specifier alias (`dommief/theme/slots/<Name>`), KHÔNG
 // bao giờ đường dẫn tương đối — chỉ bare specifier mới đi qua `resolve.alias` của Vite,
 // nên đây là điều kiện để `.dommief/theme/slots/Footer` của user thắng được default.

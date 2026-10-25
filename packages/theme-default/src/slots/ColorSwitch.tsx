@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePrefersColor } from 'dommief/theme-api';
+import styles from '../styles/layout.module.css';
 
 // THEME-API §7.6: `color`/`prefers` là `undefined` ở SSR + render đầu — PHẢI render icon
 // trung tính lúc đó (không được render "Light"/"Dark" khác nhau tuỳ máy chủ/client, đó là
@@ -10,6 +11,7 @@ export function ColorSwitch() {
   return (
     <button
       type="button"
+      className={styles.colorSwitch!}
       aria-label={label}
       onClick={() => setPrefers(color === 'dark' ? 'light' : 'dark')}
     >
