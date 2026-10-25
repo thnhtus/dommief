@@ -43,9 +43,11 @@ export function buildAliasChain(cwd: string, config: ResolvedConfig): AliasMap {
   let manifest: any;
   try { manifest = loadTheme({ cwd, theme: themeName }); } catch { manifest = null; }
   let pkgRoot = manifest?.root ?? path.resolve(cwd, 'node_modules', themeName);
+  if (!fs.existsSync(pkgRoot)) { let rp=null; let cur=import.meta.dirname; while(cur && cur!==path.parse(cur).root){const cand=path.join(cur,'packages',themeName==='dommief-theme-default'?'theme-default':themeName); if(fs.existsSync(cand)){rp=cand;break;} cur=path.dirname(cur);} if(rp) pkgRoot=rp; }
   if (fs.existsSync(path.join(pkgRoot, 'src', 'layouts'))) pkgRoot = path.join(pkgRoot, 'src');
   // default theme root: find in node_modules or repo packages
   let defaultRoot = path.resolve(cwd, 'node_modules', 'dommief-theme-default');
+  if (!fs.existsSync(defaultRoot)) { let rp=null; let cur=import.meta.dirname; while(cur && cur!==path.parse(cur).root){const cand=path.join(cur,'packages','theme-default'); if(fs.existsSync(cand)){rp=cand;break;} cur=path.dirname(cur);} if(rp) defaultRoot=rp; }
   if (fs.existsSync(path.join(defaultRoot, 'src', 'layouts'))) defaultRoot = path.join(defaultRoot, 'src');
   const roots = [localRoot, pkgRoot, defaultRoot].filter((r) => fs.existsSync(r));
 

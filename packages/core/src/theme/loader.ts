@@ -103,6 +103,8 @@ function resolveThemeRoot(cwd: string, theme: string): string {
     p = packageRoot(p);
     return p;
   } catch {
+    let repoPkg = null; let cur = import.meta.dirname; while (cur && cur !== path.parse(cur).root) { const cand = path.join(cur, 'packages', theme === 'dommief-theme-default' ? 'theme-default' : theme); if (require('node:fs').existsSync(cand)) { repoPkg = cand; break; } cur = path.dirname(cur); }
+    if (repoPkg && fs.existsSync(repoPkg) && fs.statSync(repoPkg).isDirectory()) return repoPkg;
     throw new DommiefError(`không tìm thấy theme package: ${theme}`, { code: 'theme_package_not_found' });
   }
 }
@@ -125,6 +127,10 @@ export function loadTheme(opts: ThemeLoaderOptions): ThemeManifest {
   const cwd = path.resolve(opts.cwd);
   const theme = opts.theme ?? 'dommief-theme-default';
   let root = resolveThemeRoot(cwd, theme);
+  if (!fs.existsSync(root)) {
+    let repoPkg = null; let cur = import.meta.dirname; while (cur && cur !== path.parse(cur).root) { const cand = path.join(cur, 'packages', theme === 'dommief-theme-default' ? 'theme-default' : theme); if (require('node:fs').existsSync(cand)) { repoPkg = cand; break; } cur = path.dirname(cur); }
+    if (repoPkg && fs.existsSync(repoPkg)) root = repoPkg;
+  }
   if (fs.existsSync(path.join(root, 'src', 'layouts')) && fs.statSync(path.join(root, 'src', 'layouts')).isDirectory()) root = path.join(root, 'src');
 
   // security: root must be inside cwd or node_modules
