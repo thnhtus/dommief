@@ -37,7 +37,10 @@ export function scanRoutes({ cwd, config }: { cwd: string; config: RouteConfig }
   const routes: Route[] = [];
   const warnings: string[] = [];
   const seen = new Set<string>();
-  for (const { dir } of config.docDirs) {
+  const docDirs = config.preset === 'library' && !(config.docDirs || []).some((d) => d.dir === 'src')
+    ? [...(config.docDirs || []), { dir: 'src' }]
+    : (config.docDirs || []);
+  for (const { dir } of docDirs) {
     const absDir = path.resolve(cwd, dir);
     if (!fs.existsSync(absDir)) {
       // ponytail: luôn là warning (RouteConfig không biết docDirs có phải mặc định không); CONFIG §3.3 lỗi cứng cho docDirs user khai thuộc config.ts.
@@ -192,12 +195,13 @@ function duplicateCause(a: Normalized, b: Normalized): string {
 
 /** sha256 (8 ký tự) của các key ảnh hưởng route. Khác `transformHash` của cache md (DM-406). */
 export function routeConfigHash(config: RouteConfig): string {
-  const { srcDir, docDirs, locales, forceKebabCase } = config;
+  const { srcDir, docDirs, locales, forceKebabCase, preset } = config;
   const json = JSON.stringify({
     srcDir,
     docDirs: docDirs.map((d) => d.dir),
     locales: locales.map(({ id, name, base, suffix }) => ({ id, name, base, suffix })),
     forceKebabCase,
+    preset: preset ?? 'docs',
   });
   return createHash('sha256').update(json).digest('hex').slice(0, 8);
 }

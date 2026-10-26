@@ -27,6 +27,8 @@ export const ConfigSchema = z
     base: z.string().startsWith('/', 'phải bắt đầu bằng "/" (URL tuyệt đối không được hỗ trợ)').default('/'),
     outDir: z.string().default('dist'),
     srcDir: z.string().default('docs'),
+    /** Khi `library`, tự động quét `src/` để hỗ trợ atom routing cho component library. */
+    preset: z.enum(['docs', 'library']).default('docs'),
     docDirs: z.array(z.union([z.string(), z.object({ dir: z.string() })])).optional(),
     forceKebabCase: z.boolean().default(true),
     locales: z.array(LocaleInputSchema).default([{ id: 'en-US', name: 'English' }]),

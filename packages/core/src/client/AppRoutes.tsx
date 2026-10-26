@@ -4,9 +4,10 @@ import { Suspense, type ComponentType } from 'react';
 import { Routes, Route } from 'react-router';
 import virtualRoutes from 'virtual:dommief/routes';
 import type { RouteModule } from '../routesModule.js';
-import { GlobalLayout } from 'dommief/theme/layouts/GlobalLayout';
-import { DocLayout } from 'dommief/theme/layouts/DocLayout';
-import { NotFound404 as NotFound } from 'dommief/theme/slots/NotFound';
+import GlobalLayout from 'dommief/theme/layouts/GlobalLayout';
+import DocLayout from 'dommief/theme/layouts/DocLayout';
+import NotFound404 from 'dommief/theme/slots/NotFound';
+const NotFound = NotFound404;
 
 /** Fallback rỗng (không spinner — tránh nháy). Phase 5 theme thay bằng slot. */
 export function RouteLoading() {

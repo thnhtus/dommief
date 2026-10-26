@@ -4,6 +4,7 @@ export interface Route {
   file: string;
   locale?: string;
   parentId?: string;
+  tab?: string;
 }
 
 export interface ResolvedLocale {
@@ -35,7 +36,7 @@ export interface SidebarGroup {
 }
 
 export interface TocEntry { id: string; depth: number; title: string; }
-export interface PageSummary { frontmatter: Record<string, unknown>; toc?: TocEntry[]; }
+export interface PageSummary { frontmatter: Record<string, unknown>; toc?: TocEntry[]; tabs?: { key: string; title: string; link: string }[]; }
 
 export interface SiteData {
   base: string;
@@ -57,6 +58,7 @@ export interface RouteConfig {
   docDirs: { dir: string }[];
   locales: ResolvedLocale[];
   forceKebabCase: boolean;
+  preset?: 'docs' | 'library';
 }
 
 export interface RouteTable {

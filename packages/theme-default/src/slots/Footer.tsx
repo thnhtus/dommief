@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from '../styles/layout.module.css';
 
-export function Footer() {
+export default function Footer() {
   return <footer className={styles.footer!}>Dommief</footer>;
 }

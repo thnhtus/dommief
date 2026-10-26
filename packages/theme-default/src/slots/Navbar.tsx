@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router';
 import { useNavData, useSiteData } from 'dommief/theme-api';
-import { ColorSwitch } from 'dommief/theme/slots/ColorSwitch';
-import { SearchBox } from 'dommief/theme/slots/SearchBox';
+import ColorSwitch from 'dommief/theme/slots/ColorSwitch';
+import SearchBox from 'dommief/theme/slots/SearchBox';
 import styles from '../styles/layout.module.css';
 
 // THEME-API §5 bảng slot: ColorSwitch render trong Navbar khi `themeConfig.prefersColor.switch
 // !== false` (mặc định true). §6: landmark `<nav aria-label>` riêng (không trùng Sidebar/Toc);
 // item active có `aria-current="page"`.
-export function Navbar() {
+export default function Navbar() {
   const nav = useNavData();
   const { pathname } = useLocation();
   const site = useSiteData();

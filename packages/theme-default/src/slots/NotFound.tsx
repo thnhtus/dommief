@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router';
 const subscribeNever = () => () => {};
 
 // Skip-link của GlobalLayout trỏ tới #main: trang 404 không đi qua Content nên phải tự có đích.
-export function NotFound404() {
+export default function NotFound404() {
   const { pathname } = useLocation();
   // 404.html được prerender MỘT lần cho path `/404`, nhưng host phục vụ nó ở BẤT KỲ URL lạ nào →
   // lần render đầu (hydrate) phải khớp HTML tĩnh. `getServerSnapshot` (false) dùng cho cả SSR lẫn hydrate,
