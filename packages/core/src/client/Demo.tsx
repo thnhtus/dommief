@@ -21,7 +21,7 @@ class DemoErrorBoundary extends Component<{ children: React.ReactNode; fallback:
   }
 }
 
-export function DumiDemo({ id, source }: DemoProps) {
+export function DomDemo({ id, source }: DemoProps) {
   const [showCode, setShowCode] = useState(false);
   const demo = getDemo(id);
 
@@ -65,3 +65,6 @@ export function DumiDemo({ id, source }: DemoProps) {
     </div>
   );
 }
+
+/** @deprecated Use DomDemo */
+export const DumiDemo = DomDemo;

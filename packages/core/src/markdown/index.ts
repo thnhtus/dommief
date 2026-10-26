@@ -70,7 +70,7 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
       .use(rehypeStrip)
       .use(rehypeText)
       .use(rehypeDemo)
-      // sau rehypeDemo (fence `demo` đã thành DumiDemo) và sau rehypeStrip/rehypeText (§3.16).
+      // sau rehypeDemo (fence `demo` đã thành DomDemo) và sau rehypeStrip/rehypeText (§3.16).
       .use(rehypeCode, opts.code ?? {})
       .use(rehypeApi);
   } catch (e) {

@@ -47,7 +47,7 @@ export function rehypeDemo() {
         demos.push({ id, source, src });
         parent.children[index] = {
           type: 'element',
-          tagName: 'DumiDemo',
+          tagName: 'DomDemo',
           properties: { id, src, source },
           children: [],
         };
@@ -65,7 +65,7 @@ export function rehypeDemo() {
       demos.push({ id, source });
       parent.children[index] = {
         type: 'element',
-        tagName: 'DumiDemo',
+        tagName: 'DomDemo',
         properties: { id, source },
         children: [],
       };

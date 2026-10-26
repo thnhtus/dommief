@@ -17,7 +17,7 @@ export function toModule(hast: any, meta: { frontmatter: unknown; toc: unknown; 
     body = body.split(`src="${im.name}"`).join(`src={__dmImg${i}}`);
     return `import __dmImg${i} from ${JSON.stringify(im.specifier)};\n`;
   }).join('');
-  const used = ['DumiDemo', 'DumiApi'].filter((n) => new RegExp(`<${n}[\\s/>]`).test(body));
+  const used = ['DomDemo', 'DumiDemo', 'DomApi', 'DumiApi'].filter((n) => new RegExp(`<${n}[\\s/>]`).test(body));
   const clientNames = [...used];
   if (demos.length) clientNames.push('registerDemo');
   const clientImport = clientNames.length ? `import { ${Array.from(new Set(clientNames)).join(', ')} } from '${CLIENT_MODULE}';\n` : '';
