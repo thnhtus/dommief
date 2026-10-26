@@ -111,7 +111,7 @@ export function rehypeApi() {
 
       parent.children[index] = {
         type: 'element',
-        tagName: 'DumiApi',
+        tagName: 'DomApi',
         properties: {
           src: abs,
           data: data ? JSON.stringify(data) : undefined,

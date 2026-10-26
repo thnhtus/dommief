@@ -111,10 +111,10 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
             const r = await transformMarkdown(code, file, transformOpts);
             return { code: r.code, meta: r.meta, warnings: r.warnings, demos: r.demos };
           }, cacheable);
-          let hitDemos: { id: string; source: string }[] = [];
+          let hitDemos: { id: string; source: string; src?: string }[] = [];
           ({ code: out, meta, warnings } = hit);
-          hitDemos = (hit as any).demos ?? [];
-          for (const d of hitDemos as any) { demoRegistry.set(d.id, d.source); if (d.src) this.addWatchFile(path.resolve(path.dirname(file), d.src)); }
+          hitDemos = hit.demos ?? [];
+          for (const d of hitDemos) { demoRegistry.set(d.id, d.source); if (d.src) this.addWatchFile(path.resolve(path.dirname(file), d.src)); }
         } else {
           const r = await transformMarkdown(code, file, transformOpts);
           ({ code: out, meta, warnings, apiSrcFiles } = r);

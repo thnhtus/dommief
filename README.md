@@ -20,7 +20,7 @@ Static site generator for documentation/demo sites built on React, Vite, and Mar
 - Phase 3: dev server + HMR
 - Phase 4: build + prerender (SSG)
 - Phase 5: theme system
-- Phase 6: demo component (`<code src="...">`, `DumiDemo`)
+- Phase 6: demo component (`<code src="...">`, `DomDemo` / legacy `DumiDemo`)
 - Phase 7: site features (nav, sidebar, TOC, pagination)
 - Phase 8: client-side search index
 - Phase 9: config + plugin API

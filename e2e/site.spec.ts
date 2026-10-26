@@ -54,8 +54,11 @@ test('trang Get started: container, ảnh, demo, code thường', async ({ page 
   await expect(page.getByText('Đây là container')).toBeVisible();
   await expect(page.getByText('plain code, not a demo')).toBeVisible();
   await expect(page.locator('.dommief-demo')).toBeVisible();
-  // v1: demo hiển thị mã nguồn + thanh công cụ (chưa chạy live — Phase 6 cắt live-edit).
-  await expect(page.locator('.dommief-demo__preview')).toContainText('demo-btn');
+  const counter = page.getByTestId('demo-counter');
+  await expect(counter).toBeVisible();
+  await expect(counter).toHaveText('0');
+  await counter.click();
+  await expect(counter).toHaveText('1');
   await expect(page.getByRole('button', { name: 'View code' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Copy' })).toBeVisible();
   const img = page.getByRole('img', { name: 'logo' });

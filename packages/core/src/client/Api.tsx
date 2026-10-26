@@ -21,7 +21,7 @@ export interface ApiProps {
   data?: string | ApiEntry[];
 }
 
-export function DumiApi({ src, data }: ApiProps) {
+export function DomApi({ src, data }: ApiProps) {
   let entries: ApiEntry[] = [];
   try {
     if (Array.isArray(data)) entries = data;
@@ -67,3 +67,7 @@ export function DumiApi({ src, data }: ApiProps) {
     </div>
   );
 }
+
+/** @deprecated Use DomApi */
+export const DumiApi = DomApi;
+

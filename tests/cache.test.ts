@@ -81,6 +81,23 @@ describe('TransformCache (DM-406)', () => {
     expect(cache2.stats).toMatchObject({ hit: 1, miss: 0 });
   });
 
+  it('CACHE_VERSION bump (v1 -> v2, Phase 12 thêm `demos`): entry cache cũ không có `demos` không bị đọc nhầm', async () => {
+    const dir = tmpDir();
+    const cache = new TransformCache(dir);
+    // Giả lập payload v1 (trước Phase 12): ghi thẳng dưới key tính với version=1 (không có `demos`).
+    const v1Key = hashKey({ ...baseInput, version: 1 });
+    cache.write(v1Key, { code: 'stale-no-demos', meta: { frontmatter: {}, toc: [], texts: [] }, warnings: [] });
+    // Code hiện tại tính key KHÔNG truyền version -> dùng CACHE_VERSION hiện hành (2) -> key khác v1Key.
+    let calls = 0;
+    const result = await cache.getOrCompute('/a.md', baseInput, async () => {
+      calls++;
+      return { code: 'fresh-with-demos', meta: { frontmatter: {}, toc: [], texts: [] }, warnings: [], demos: [{ id: 'd1', source: 'x' }] };
+    });
+    expect(calls).toBe(1); // phải miss, không được trúng payload v1 cụt "demos"
+    expect(result.code).toBe('fresh-with-demos');
+    expect(result.demos).toEqual([{ id: 'd1', source: 'x' }]);
+  });
+
   it('enabled=false (--no-cache): luôn miss, không ghi file nào', async () => {
     const dir = tmpDir();
     const cache = new TransformCache(dir, false);

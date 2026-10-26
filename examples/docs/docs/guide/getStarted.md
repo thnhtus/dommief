@@ -13,7 +13,11 @@ const x = <b>plain code, not a demo</b>;
 ```
 
 ```tsx demo
-export default () => <button>demo-btn</button>;
+import { useState } from 'react';
+export default function Demo() {
+  const [count, setCount] = useState(0);
+  return <button type="button" onClick={() => setCount((c) => c + 1)} data-testid="demo-counter">{count}</button>;
+}
 ```
 
 :::info{title="Ghi chú"}
