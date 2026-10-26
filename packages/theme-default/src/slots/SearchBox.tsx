@@ -52,7 +52,7 @@ function groupHits(hits: SearchHit[]): Group[] {
   return groups;
 }
 
-export function SearchBox() {
+export default function SearchBox() {
   const site = useSiteData();
   const { search } = useSiteSearch();
   const navigate = useNavigate();
