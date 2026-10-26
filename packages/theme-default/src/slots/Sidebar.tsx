@@ -5,7 +5,7 @@ import styles from '../styles/layout.module.css';
 
 // THEME-API §6: `<nav aria-label>` riêng bên trong `<aside>` (aside trần không phải landmark điều hướng);
 // item active có `aria-current="page"`.
-export default function Sidebar() {
+export function Sidebar() {
   const groups = useSidebarData();
   const { pathname } = useLocation();
   return (
@@ -27,3 +27,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+export default Sidebar;

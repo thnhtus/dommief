@@ -11,7 +11,7 @@ describe('override Footer qua .dommief/theme (DM-511)', () => {
   beforeAll(() => {
     const dir = path.join(s.dir, '.dommief', 'theme', 'slots', 'Footer');
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, 'index.tsx'), "export function Footer() { return 'OVERRIDE-FOOTER-MARKER'; }\n");
+    fs.writeFileSync(path.join(dir, 'index.tsx'), "export default function Footer() { return 'OVERRIDE-FOOTER-MARKER'; }\n");
     s.build();
   }, 180_000);
   afterAll(() => s.cleanup());

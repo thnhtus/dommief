@@ -19,7 +19,7 @@ describe('dommief build + ssr-guard thật (DM-408 §3)', () => {
   afterAll(() => s.cleanup());
 
   it('slot đọc window.innerWidth trong render -> exit != 0 với ssr_unsafe_access', () => {
-    writeFooter("export function Footer() { return <footer>{window.innerWidth}</footer>; }\n");
+    writeFooter("export default function Footer() { return <footer>{window.innerWidth}</footer>; }\n");
     let output = '';
     try { s.build(); } catch (e: any) { output = String(e.stderr ?? '') + String(e.stdout ?? ''); }
     expect(output).toMatch(/ssr_unsafe_access/);
@@ -28,7 +28,7 @@ describe('dommief build + ssr-guard thật (DM-408 §3)', () => {
   it('cùng slot bọc <ClientOnly> -> build thành công, HTML tĩnh không chứa giá trị window', () => {
     writeFooter(
       "import { ClientOnly } from 'dommief/theme-api';\n" +
-      "export function Footer() { return <footer><ClientOnly fallback={<span>FALLBACK-MARK</span>}><Inner /></ClientOnly></footer>; }\n" +
+      "export default function Footer() { return <footer><ClientOnly fallback={<span>FALLBACK-MARK</span>}><Inner /></ClientOnly></footer>; }\n" +
       "function Inner() { return <span>{window.innerWidth}</span>; }\n",
     );
     s.build();

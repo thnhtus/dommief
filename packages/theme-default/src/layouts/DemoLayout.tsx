@@ -5,3 +5,4 @@ import Content from 'dommief/theme/slots/Content';
 export function DemoLayout({ children }: { children?: React.ReactNode }) {
   return <Content>{children}</Content>;
 }
+export default DemoLayout;

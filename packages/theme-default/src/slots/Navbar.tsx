@@ -8,7 +8,7 @@ import styles from '../styles/layout.module.css';
 // THEME-API §5 bảng slot: ColorSwitch render trong Navbar khi `themeConfig.prefersColor.switch
 // !== false` (mặc định true). §6: landmark `<nav aria-label>` riêng (không trùng Sidebar/Toc);
 // item active có `aria-current="page"`.
-export default function Navbar() {
+export function Navbar() {
   const nav = useNavData();
   const { pathname } = useLocation();
   const site = useSiteData();
@@ -30,3 +30,4 @@ export default function Navbar() {
     </nav>
   );
 }
+export default Navbar;

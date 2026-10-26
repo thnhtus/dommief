@@ -13,7 +13,7 @@ describe('override SearchBox qua .dommief/theme (DM-511 + DM-803)', () => {
   beforeAll(() => {
     const dir = path.join(s.dir, '.dommief', 'theme', 'slots', 'SearchBox');
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, 'index.tsx'), "export function SearchBox() { return 'OVERRIDE-SEARCHBOX-MARKER'; }\n");
+    fs.writeFileSync(path.join(dir, 'index.tsx'), "export default function SearchBox() { return 'OVERRIDE-SEARCHBOX-MARKER'; }\n");
     s.build();
   }, 180_000);
   afterAll(() => s.cleanup());
