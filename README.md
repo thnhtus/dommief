@@ -16,6 +16,17 @@ Static site generator for documentation and demo sites, built on React, Vite, an
 
 ## Quick start
 
+Install from npm (published as `dommief`):
+
+```bash
+npm install -D dommief
+npx dommief dev      # dev server
+npx dommief build    # production build + SSG
+npx dommief preview  # preview
+```
+
+Or work from source:
+
 ```bash
 pnpm install
 pnpm -C packages/core build
