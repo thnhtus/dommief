@@ -32,7 +32,7 @@ export function buildRobots(sitemapUrl: string): string {
   return `User-agent: *\nAllow: /\n\nSitemap: ${sitemapUrl}\n`;
 }
 
-function escapeXml(s: string): string {
+export function escapeXml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c]!);
 }
 

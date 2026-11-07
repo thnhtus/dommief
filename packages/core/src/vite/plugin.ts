@@ -10,6 +10,7 @@ import { dommiefSitePlugin } from './sitePlugin.js';
 import { dommiefSearchIndexPlugin } from './searchIndexPlugin.js';
 import { createState } from './state.js';
 import { winPath } from '../utils/path.js';
+import { escapeXml } from '../sitemap.js';
 import { buildAliasChain } from '../theme/resolver.js';
 import { computePipelineHash, computeRoutesHash, type TransformCache } from '../cache.js';
 // Import từ prefers-color.js (KHÔNG phải theme-api.js): file này chạy trong tiến trình
@@ -138,7 +139,7 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
     transformIndexHtml: { order: 'pre', handler(html) {
       const title = state.config().title;
       let out = html;
-      if (!/<title>/.test(out)) out = out.replace('<head>', `<head><title>${title}</title>`);
+      if (!/<title>/.test(out)) out = out.replace('<head>', `<head><title>${escapeXml(title)}</title>`);
       const tags = state.host().collectHtmlHeadTags();
       if (tags.length) out = out.replace('</head>', tags.join('\n') + '</head>');
       // THEME-API §9.2 + Amendment #1: inline script < 1KB, KHÔNG `async`/`defer`, chạy trước

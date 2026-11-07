@@ -14,6 +14,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/dist-*/**',
       '**/.dommief/**',
+      '**/.astro/**',
       '**/.vitest/**',
       'tests/fixtures/**',
       'playwright-report/**',
@@ -43,7 +44,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['scripts/**/*.{js,mjs}', '*.config.{js,mjs,ts}'],
+    files: ['scripts/**/*.{js,mjs}', '*.config.{js,mjs,ts}', 'landing/**/*.config.{js,mjs,ts}'],
     languageOptions: { globals: globals.node },
   },
   {

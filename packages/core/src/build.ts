@@ -212,7 +212,12 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   const linkRefs: ReturnType<typeof collect> = [];
   await timed('prerender', async () => {
     await mapLimit(plan.prerender, config.ssg.concurrency, async (r) => {
-      const html = await render(r.path);
+      let html: string;
+      try {
+        html = await render(r.path);
+      } catch (e) {
+        throw new DommiefError(`prerender ${r.path}: ${formatError(e)}`, { code: 'ssg_render_failed' });
+      }
       if (linkCheckEnabled) linkRefs.push(...collect(r.id, html, fileOf(r.id)));
       writePage(r, wrap(html, r.path));
     });

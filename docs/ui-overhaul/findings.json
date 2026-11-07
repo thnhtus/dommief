@@ -1,0 +1,12 @@
+{
+  "score": {
+    "hierarchy_layout": 18,
+    "typography": 13,
+    "color_consistency": 13,
+    "usability_interaction": 18,
+    "responsive_accessibility": 13,
+    "polish_robustness": 13
+  },
+  "noFindingsReason": "New Astro landing page; no existing UI to audit.",
+  "findings": []
+}

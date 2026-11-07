@@ -65,6 +65,9 @@ describe('preview (DM-411)', () => {
       expect(resRoot.status).toBe(200);
       const resNoBase = await fetch(`${origin}/`);
       expect(resNoBase.status).not.toBe(200);
+
+      // %-encoding hỏng: 400, không crash middleware.
+      expect((await fetch(`${origin}/sub/%E0`)).status).toBe(400);
     } finally {
       await server.close();
     }

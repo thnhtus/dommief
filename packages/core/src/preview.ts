@@ -74,7 +74,14 @@ function spaFallbackPlugin(opts: PreviewOptions): Plugin {
         // cho chính cách test (và nhiều HTTP client khác) gọi đến — đã bắt trực tiếp: với header
         // lọc, `fetch('/sub/guide/get-started')` trả nhầm trang chủ (Vite fallback thay vì middleware
         // này xử lý). Lọc theo đuôi file: bỏ qua request rõ ràng là asset (có đuôi khác .html).
-        const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0] ?? '/');
+        let urlPath: string;
+        try {
+          urlPath = decodeURIComponent((req.url ?? '/').split('?')[0] ?? '/');
+        } catch {
+          res.statusCode = 400;
+          res.end('Invalid URL');
+          return;
+        }
         if (req.method !== 'GET') return next();
         // Ngoài base: TỰ trả 404, KHÔNG `next()` — static handler của Vite (sirv) không biết về
         // `base`, nó phục vụ `index.html` ở gốc `outDir` cho BẤT KỲ path nào không khớp asset —

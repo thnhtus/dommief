@@ -68,7 +68,7 @@ export function buildApiTable(src: string, filePath: string = ''): ApiEntry[] | 
   try {
     docs = parser.parse(abs) ?? [];
   } catch {
-    docs = []; // file không parse được (cú pháp lỗi) → bảng rỗng
+    return null; // file không parse được (cú pháp lỗi) → caller cảnh báo, không nuốt im lặng
   }
 
   const entries: ApiEntry[] = (docs || []).map((d: any) => ({
@@ -95,6 +95,7 @@ export function rehypeApi() {
     // watch file.md, không biết plugin có đọc thêm .tsx (#17).
     const apis: any[] = Array.isArray((file?.data as any)?.apis) ? (file.data as any).apis : [];
     const watched: string[] = Array.isArray((file?.data as any)?.apiSrcFiles) ? (file.data as any).apiSrcFiles : [];
+    const warnings: string[] = Array.isArray((file?.data as any)?.warnings) ? (file.data as any).warnings : [];
     const filePath = String((file as any)?.path ?? '');
 
     visit(tree, 'element', (node: any, index: number | undefined, parent: any) => {
@@ -106,6 +107,7 @@ export function rehypeApi() {
       const abs = resolveApiSrc(src, filePath);
       const data = buildApiTable(src, filePath);
       watched.push(abs);
+      if (!data?.length) warnings.push(`<API src="${src}">: ${data ? 'no component found (syntax error or no exported component)' : 'file missing or failed to parse'}: ${abs}`);
 
       apis.push({ id: hashFileContent(src + filePath).slice(0, 8), src: abs, data });
 
@@ -123,6 +125,7 @@ export function rehypeApi() {
     if (file?.data) {
       (file.data as any).apis = apis;
       (file.data as any).apiSrcFiles = watched;
+      (file.data as any).warnings = warnings;
     }
   };
 }
