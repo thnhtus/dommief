@@ -179,6 +179,7 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     srcDir: c.srcDir,
     docDirs: (c.docDirs ?? [c.srcDir]).map((d) => (typeof d === 'string' ? { dir: d } : { dir: d.dir })),
     forceKebabCase: c.forceKebabCase,
+    preset: c.preset,
     locales,
     themeConfig: c.themeConfig,
     theme: c.theme,

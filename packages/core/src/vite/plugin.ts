@@ -21,6 +21,8 @@ import { computePipelineHash, computeRoutesHash, type TransformCache } from '../
 import { PREFERS_COLOR_ATTR, PREFERS_COLOR_BOOT_SCRIPT, resolveConfiguredColor, type PrefersColorValue } from '../prefers-color.js';
 
 const demoRegistry = new Map<string, string>();
+// Thư mục file .md chứa demo inline: import tương đối trong demo resolve theo đây.
+const demoDirs = new Map<string, string>();
 
 export interface DommiefPluginOptions {
   root: string;
@@ -73,6 +75,10 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       const bare = id.replace(/^\//, '');
       if (bare === 'virtual:dommief/entry') return '\0virtual:dommief/entry';
       if (bare.startsWith('virtual:dommief-demo/')) return '\0' + bare;
+      if (importer?.startsWith('\0virtual:dommief-demo/') && id.startsWith('.')) {
+        const dir = demoDirs.get(importer.slice('\0virtual:dommief-demo/'.length));
+        if (dir) return this.resolve(path.resolve(dir, id), path.join(dir, '_demo.tsx'), { skipSelf: true });
+      }
       if (bare === 'virtual:dommief/routes' || bare === 'virtual:dommief/site') return null;
       if (id.endsWith('.md') || id.endsWith('.md?meta')) {
         const base = importer ? path.dirname(importer.replace(/\?meta$/, '')) : process.cwd();
@@ -115,12 +121,12 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
           let hitDemos: { id: string; source: string; src?: string }[] = [];
           ({ code: out, meta, warnings } = hit);
           hitDemos = hit.demos ?? [];
-          for (const d of hitDemos) { demoRegistry.set(d.id, d.source); if (d.src) this.addWatchFile(path.resolve(path.dirname(file), d.src)); }
+          for (const d of hitDemos) { demoRegistry.set(d.id, d.source); demoDirs.set(d.id, path.dirname(file)); if (d.src) this.addWatchFile(path.resolve(path.dirname(file), d.src)); }
         } else {
           const r = await transformMarkdown(code, file, transformOpts);
           ({ code: out, meta, warnings, apiSrcFiles } = r);
           const nonCacheDemos = (r as any).demos ?? [];
-          for (const d of nonCacheDemos as any) { demoRegistry.set(d.id, d.source); if (d.src) this.addWatchFile(path.resolve(path.dirname(file), d.src)); }
+          for (const d of nonCacheDemos as any) { demoRegistry.set(d.id, d.source); demoDirs.set(d.id, path.dirname(file)); if (d.src) this.addWatchFile(path.resolve(path.dirname(file), d.src)); }
         }
         for (const w of warnings) this.warn(w);
         for (const apiFile of apiSrcFiles) this.addWatchFile(apiFile); // <API src> đọc file khác .md (#17)
