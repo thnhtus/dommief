@@ -1,4 +1,4 @@
-import type { Plugin } from 'vite';
+import { transformWithOxc, type Plugin } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig, type ResolvedConfig } from '../config.js';
@@ -50,10 +50,18 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
     return loaded;
   });
 
+  let isServe = false;
+  // Vite 8 dev bỏ qua `moduleType: 'jsx'` từ load → JSX thô tới import-analysis. Tự biên dịch.
+  const jsx = async (code: string, name: string) => {
+    const r = await transformWithOxc(code, name + '.jsx', { lang: 'jsx', jsx: { runtime: 'automatic', development: isServe } });
+    return { code: r.code, map: r.map ?? null, moduleType: 'js' as const };
+  };
+
   const markdownPlugin: Plugin = {
     name: 'dommief:markdown',
     enforce: 'pre',
-    async config() {
+    async config(_, env) {
+      isServe = env.command === 'serve';
       if (!loaded) {
         const config = await loadConfig(opts.root);
         loaded = { config, host: createPluginHost(config.plugins ?? []) };
@@ -68,6 +76,9 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         base: loaded.config.base,
         resolve: { dedupe: ['react', 'react-dom', 'react-router'], alias: aliases },
         ssr: { noExternal: ['dommief'] },
+        // Client dommief nằm trong node_modules nên Vite không quét dep → React CJS bị serve thô
+        // ("does not provide an export named 'jsxDEV'").
+        optimizeDeps: { include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'react-router'] },
       };
     },
     resolveId(id, importer) {
@@ -94,7 +105,7 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       if (id.startsWith('\0virtual:dommief-demo/')) {
         const demoId = id.slice('\0virtual:dommief-demo/'.length);
         const source = demoRegistry.get(demoId) ?? 'export default function Demo(){ return null; }';
-        return { code: source, map: null, moduleType: 'jsx' };
+        return jsx(source, 'demo-' + demoId);
       }
       if (id === '\0virtual:dommief/entry') {
         return { code: `import ${JSON.stringify(resolveClientFile('entry-client.tsx'))};`, map: null, moduleType: 'js' };
@@ -137,7 +148,7 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
           // Trả frontmatter + toc (nhỏ) — không texts (nặng, chỉ để tìm kiếm).
           return { code: `export default ${JSON.stringify({ frontmatter: meta.frontmatter, toc: meta.toc })};`, map: null, moduleType: 'js' };
         }
-        return { code: out, map: null, moduleType: 'jsx' };
+        return jsx(out, file);
       }
       return null;
     },
