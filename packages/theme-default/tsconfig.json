@@ -1,1 +1,5 @@
-{ "extends": "../../tsconfig.base.json", "include": ["src"], "compilerOptions": { "jsx": "react-jsx" } }
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src", "../core/src/theme-modules.d.ts"],
+  "compilerOptions": { "jsx": "react-jsx" }
+}

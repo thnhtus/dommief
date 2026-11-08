@@ -1,14 +1,28 @@
-.navbar { position: sticky; top: 0; z-index: var(--dm-z-navbar); display: flex; align-items: center; gap: var(--dm-space-4); height: var(--dm-navbar-height); padding: 0 var(--dm-space-5); background: var(--dm-c-bg); border-bottom: 1px solid var(--dm-c-border-light); }
-.navbar a[aria-current='page'] { font-weight: 600; color: var(--dm-c-text); }
-.colorSwitch { margin-inline-start: auto; background: none; border: 1px solid var(--dm-c-border); border-radius: var(--dm-radius-sm); color: var(--dm-c-text); padding: var(--dm-space-1) var(--dm-space-3); cursor: pointer; }
+.navbar { position: sticky; top: 0; z-index: var(--dm-z-navbar); display: flex; align-items: center; gap: var(--dm-space-4); height: var(--dm-navbar-height); padding: 0 var(--dm-space-5); background: var(--dm-c-bg); border-bottom: 1px solid var(--dm-c-border); }
+.navbar__brand { display: flex; align-items: center; gap: var(--dm-space-2); font-weight: 650; font-size: 0.95rem; color: var(--dm-c-text); letter-spacing: -0.01em; }
+.navbar__brand:hover { text-decoration: none; color: var(--dm-c-primary); }
+.navbar__link { border-radius: var(--dm-radius-sm); padding: var(--dm-space-1) var(--dm-space-3); font-size: 0.9rem; color: var(--dm-c-text-secondary); transition: background var(--dm-transition), color var(--dm-transition); }
+.navbar__link:hover { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); text-decoration: none; }
+.navbar a[aria-current='page'] { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); font-weight: 600; }
+.navbar a[aria-current='page']:hover { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); text-decoration: none; }
+.colorSwitch { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin-inline-start: auto; background: transparent; border: 1px solid var(--dm-c-border); border-radius: var(--dm-radius-sm); color: var(--dm-c-text); cursor: pointer; transition: background var(--dm-transition); }
+.colorSwitch:hover { background: var(--dm-c-bg-subtle); }
+.colorSwitch svg { width: 16px; height: 16px; }
 .doc { display: grid; grid-template-columns: var(--dm-sidebar-width) minmax(0, 1fr) 200px; gap: var(--dm-space-5); max-width: var(--dm-layout-max-width); margin: 0 auto; padding: var(--dm-space-5); }
 .sidebar { position: sticky; top: var(--dm-navbar-height); align-self: start; z-index: var(--dm-z-sidebar); }
 .sidebar ul { list-style: none; margin: 0; padding: 0; }
-.sidebar h3 { font-size: 0.875rem; color: var(--dm-c-text-secondary); margin: var(--dm-space-4) 0 var(--dm-space-2); }
-.sidebar a[aria-current='page'] { font-weight: 600; color: var(--dm-c-text); }
+.sidebar h3 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dm-c-text-note); margin: var(--dm-space-5) 0 var(--dm-space-2); }
+.sidebar ul ul { padding-inline-start: var(--dm-space-3); }
+.sidebar a { display: block; padding: 6px var(--dm-space-2); margin-inline: calc(var(--dm-space-2) * -1); border-radius: var(--dm-radius-sm); font-size: 0.9rem; color: var(--dm-c-text-secondary); }
+.sidebar a:hover { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); text-decoration: none; }
+.sidebar a[aria-current='page'] { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); font-weight: 600; }
 .content { min-width: 0; }
 .toc { position: sticky; top: var(--dm-navbar-height); align-self: start; display: flex; flex-direction: column; gap: var(--dm-space-2); font-size: 0.875rem; }
-.footer { text-align: center; padding: var(--dm-space-5); color: var(--dm-c-text-note); border-top: 1px solid var(--dm-c-border-light); }
+.toc__label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dm-c-text-note); }
+.toc a { display: block; padding: var(--dm-space-1) 0; color: var(--dm-c-text-secondary); border-left: 2px solid var(--dm-c-border-light); padding-inline-start: var(--dm-space-2); }
+.toc a:hover { color: var(--dm-c-text); }
+.toc a[aria-current='true'] { color: var(--dm-c-text); font-weight: 600; border-left-color: var(--dm-c-primary); }
+.footer { text-align: center; padding: var(--dm-space-6) var(--dm-space-5); color: var(--dm-c-text-note); border-top: 1px solid var(--dm-c-border); font-size: 0.875rem; }
 @media (max-width: 960px) { .doc { grid-template-columns: minmax(0, 1fr); } .sidebar, .toc { position: static; } }
 /* Màn hẹp: navbar được xuống dòng thay vì đẩy nút đổi giao diện ra ngoài viewport (tràn 30–55px ở
    320–360px, bắt bằng e2e). Sidebar/TOC đã `position: static` ở breakpoint trên nên chiều cao navbar

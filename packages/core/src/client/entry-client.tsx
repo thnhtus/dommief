@@ -1,4 +1,4 @@
-import { hydrateRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import { useEffect } from 'react';
 import { BrowserRouter, matchPath, useNavigate } from 'react-router';
 import { AppRoutes } from './AppRoutes.js';
@@ -70,15 +70,17 @@ async function start(): Promise<void> {
   const here = stripBase(window.location.pathname, base);
   const current = virtualRoutes.find((r) => matchPath({ path: r.path, end: true }, here));
   if (current) await current.preload();
-  hydrateRoot(
-    el,
+  const app = (
     <BrowserRouter basename={base.replace(/\/$/, '') || '/'}>
       <SiteProvider value={virtualSite}>
         <LinkInterceptor base={base} />
         <AppRoutes />
       </SiteProvider>
-    </BrowserRouter>,
+    </BrowserRouter>
   );
+  // Dev server không SSR (#root rỗng) → hydrate sẽ báo mismatch; chỉ hydrate khi có HTML SSG.
+  if (el.hasChildNodes()) hydrateRoot(el, app);
+  else createRoot(el).render(app);
 }
 
 if (typeof window !== 'undefined') void start();

@@ -16,11 +16,12 @@ export function Navbar() {
   const showColorSwitch = themeConfig?.prefersColor?.switch !== false;
   return (
     <nav aria-label="Main" className={styles.navbar!}>
+      <Link to="/" className={styles.navbar__brand!}>{site.title}</Link>
       {nav.map((item) => {
         const to = item.link ?? item.activePath;
         const active = pathname === to;
         return (
-          <Link key={item.activePath} to={to} aria-current={active ? 'page' : undefined}>
+          <Link key={item.activePath} to={to} className={styles.navbar__link!} aria-current={active ? 'page' : undefined}>
             {item.title}
           </Link>
         );
