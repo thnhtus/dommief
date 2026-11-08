@@ -66,7 +66,7 @@ export function buildSidebar(
   for (const route of routes) {
     const lid = localeId(route, locales);
     const fm = fmFor(frontmatter, route);
-    const groupTitle = typeof fm.group === 'string' && fm.group.trim() ? fm.group : (route.id.split('/')[0] ?? 'General');
+    const groupTitle = typeof fm.group === 'string' && fm.group.trim() ? fm.group : (route.id.includes('/') ? route.id.split('/')[0]! : '') // file gốc không có thư mục → nhóm không tiêu đề;
     const item: SidebarItem = {
       title: titleOf(route, fm),
       link: route.path,

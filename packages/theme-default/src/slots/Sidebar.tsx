@@ -13,7 +13,8 @@ export function Sidebar() {
       <nav aria-label="Sidebar">
         {groups.map((g, i) => (
           <div key={i}>
-            {g.title ? <h3>{g.title}</h3> : null}
+            {/* Nhóm chỉ 1 mục trùng tên (vd "button" > "Button") → bỏ tiêu đề lặp. */}
+            {g.title && !(g.children.length === 1 && g.title.toLowerCase() === g.children[0]!.title.toLowerCase()) ? <h3>{g.title}</h3> : null}
             <ul>
               {g.children.map((c) => (
                 <li key={c.link}>
