@@ -28,3 +28,8 @@
    320–360px, bắt bằng e2e). Sidebar/TOC đã `position: static` ở breakpoint trên nên chiều cao navbar
    tăng không lệch offset sticky nào. */
 @media (max-width: 600px) { .navbar { flex-wrap: wrap; height: auto; min-height: var(--dm-navbar-height); row-gap: var(--dm-space-2); padding-block: var(--dm-space-2); } }
+.notFound { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--dm-space-3); min-height: calc(100vh - var(--dm-navbar-height) * 2); padding: var(--dm-space-6) var(--dm-space-5); text-align: center; }
+.notFound h1 { margin: 0; font-size: clamp(3rem, 10vw, 5rem); font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+.notFound p { margin: 0; color: var(--dm-c-text-secondary); font-family: var(--dm-font-mono); font-size: 0.875rem; overflow-wrap: anywhere; }
+.notFound__home { display: inline-flex; align-items: center; min-height: 36px; margin-top: var(--dm-space-2); padding: 0 var(--dm-space-4); border-radius: var(--dm-radius-sm); background: var(--dm-c-text); color: var(--dm-c-bg); font-size: 0.875rem; font-weight: 500; }
+.notFound__home:hover { text-decoration: none; opacity: 0.9; }

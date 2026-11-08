@@ -1,5 +1,6 @@
 import React, { useSyncExternalStore } from 'react';
 import { Link, useLocation } from 'react-router';
+import styles from '../styles/layout.module.css';
 
 const subscribeNever = () => () => {};
 
@@ -12,10 +13,10 @@ export function NotFound404() {
   // e2e trình duyệt thật). Không dùng `typeof window` — ssr-guard cấm đọc `window` lúc render.
   const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
   return (
-    <main id="main" tabIndex={-1}>
+    <main id="main" tabIndex={-1} className={styles.notFound!}>
       <h1>404</h1>
       <p>{mounted ? pathname : '/404'}</p>
-      <Link to="/">Home</Link>
+      <Link to="/" className={styles.notFound__home!}>Home</Link>
     </main>
   );
 }
