@@ -110,3 +110,12 @@ img { max-width: 100%; height: auto; }
 .dommief-container--success { border-color: var(--dm-c-success); background: color-mix(in srgb, var(--dm-c-success) 8%, transparent); }
 .dommief-container--warning { border-color: var(--dm-c-warning); background: color-mix(in srgb, var(--dm-c-warning) 8%, transparent); }
 .dommief-container--error { border-color: var(--dm-c-error); background: color-mix(in srgb, var(--dm-c-error) 8%, transparent); }
+
+/* Demo component (DM-702): card with separated toolbar + preview. */
+.dommief-demo { margin: var(--dm-space-4) 0; border: 1px solid var(--dm-c-border); border-radius: var(--dm-radius); overflow: hidden; background: var(--dm-c-bg); }
+.dommief-demo__preview { display: flex; align-items: center; justify-content: center; padding: var(--dm-space-6); }
+.dommief-demo__code { margin: 0; padding: var(--dm-space-4); background: var(--dm-c-bg-code); border-top: 1px solid var(--dm-c-border-light); }
+.dommief-demo__toolbar { display: flex; gap: var(--dm-space-2); padding: var(--dm-space-2) var(--dm-space-3); border-top: 1px solid var(--dm-c-border-light); background: var(--dm-c-bg-subtle); }
+.dommief-demo__toolbar button { font: inherit; font-size: 0.8rem; padding: var(--dm-space-1) var(--dm-space-2); border: 1px solid var(--dm-c-border); border-radius: var(--dm-radius-sm); background: var(--dm-c-bg); color: var(--dm-c-text-secondary); cursor: pointer; transition: all var(--dm-transition-duration); }
+.dommief-demo__toolbar button:hover { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); border-color: var(--dm-c-text-note); }
+.dommief-demo__toolbar button:active { background: var(--dm-c-border-light); }
