@@ -13,14 +13,15 @@
 .sidebar ul { list-style: none; margin: 0; padding: 0; }
 .sidebar h3 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dm-c-text-note); margin: var(--dm-space-5) 0 var(--dm-space-2); }
 .sidebar ul ul { padding-inline-start: var(--dm-space-3); }
-.sidebar a { display: block; padding: 6px var(--dm-space-2); margin-inline: calc(var(--dm-space-2) * -1); border-radius: var(--dm-radius-sm); font-size: 0.9rem; color: var(--dm-c-text-secondary); }
+.sidebar a { display: flex; align-items: center; min-height: 32px; padding: 4px var(--dm-space-2); margin-inline: calc(var(--dm-space-2) * -1); border-radius: var(--dm-radius-sm); font-size: 0.875rem; color: var(--dm-c-text-secondary); transition: background var(--dm-transition), color var(--dm-transition); }
 .sidebar a:hover { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); text-decoration: none; }
 .sidebar a[aria-current='page'] { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); font-weight: 600; }
 .content { min-width: 0; }
 .toc { position: sticky; top: var(--dm-navbar-height); align-self: start; display: flex; flex-direction: column; gap: var(--dm-space-2); font-size: 0.875rem; }
 .toc__label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dm-c-text-note); }
 .toc a { display: block; padding: var(--dm-space-1) 0; color: var(--dm-c-text-secondary); border-left: 2px solid var(--dm-c-border-light); padding-inline-start: var(--dm-space-2); }
-.toc a:hover { color: var(--dm-c-text); }
+.toc a { transition: color var(--dm-transition), border-color var(--dm-transition); }
+.toc a:hover { color: var(--dm-c-text); text-decoration: none; }
 .toc a[aria-current='true'] { color: var(--dm-c-text); font-weight: 600; border-left-color: var(--dm-c-primary); }
 .footer { text-align: center; padding: var(--dm-space-6) var(--dm-space-5); color: var(--dm-c-text-note); border-top: 1px solid var(--dm-c-border); font-size: 0.875rem; }
 @media (max-width: 960px) { .doc { grid-template-columns: minmax(0, 1fr); } .sidebar, .toc { position: static; } }
