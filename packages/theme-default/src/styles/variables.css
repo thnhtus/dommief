@@ -100,11 +100,12 @@ img { max-width: 100%; height: auto; }
 .dommief-code .shiki { background-color: var(--shiki-light-bg); }
 [data-prefers-color='dark'] .dommief-code .shiki span { color: var(--shiki-dark); }
 [data-prefers-color='dark'] .dommief-code .shiki { background-color: var(--shiki-dark-bg); }
-.dommief-code .shiki .line.highlighted { background: color-mix(in srgb, var(--dm-c-primary) 15%, transparent); display: inline-block; width: 100%; }
+/* Mọi nền tint làm token github-light (#d73a49, #6a737d) tụt dưới 4.5:1 → đánh dấu bằng vạch trái, giữ nền gốc. */
+.dommief-code .shiki .line.highlighted { box-shadow: inset 2px 0 var(--dm-c-primary); display: inline-block; width: 100%; }
 .dommief-code .shiki .line[data-line]::before { content: attr(data-line); display: inline-block; width: 2em; margin-inline-end: var(--dm-space-2); color: var(--dm-c-text-note); text-align: right; }
 
 /* Container thông báo (DM-703): 4 loại cố định, màu đạt AA trên cả nền light/dark. */
-.dommief-container { margin: var(--dm-space-4) 0; padding: var(--dm-space-4); border-radius: var(--dm-radius); border-inline-start: 4px solid; }
+.dommief-container { margin: var(--dm-space-4) 0; padding: var(--dm-space-4); border-radius: var(--dm-radius); border-width: 1px; border-style: solid; border-color: var(--dm-c-border-light); }
 .dommief-container__title { font-weight: 600; margin: 0 0 var(--dm-space-2); }
 .dommief-container--info { border-color: var(--dm-c-info); background: color-mix(in srgb, var(--dm-c-info) 8%, transparent); }
 .dommief-container--success { border-color: var(--dm-c-success); background: color-mix(in srgb, var(--dm-c-success) 8%, transparent); }
