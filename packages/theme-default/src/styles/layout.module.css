@@ -12,6 +12,8 @@
 .sidebar { position: sticky; top: var(--dm-navbar-height); align-self: start; z-index: var(--dm-z-sidebar); }
 .sidebar ul { list-style: none; margin: 0; padding: 0; }
 .sidebar h3 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dm-c-text-note); margin: var(--dm-space-5) 0 var(--dm-space-2); }
+.sidebar nav > div:first-child h3 { margin-top: 0; }
+.sidebar li { margin: 2px 0; }
 .sidebar ul ul { padding-inline-start: var(--dm-space-3); }
 .sidebar a { display: flex; align-items: center; min-height: 32px; padding: 4px var(--dm-space-2); margin-inline: calc(var(--dm-space-2) * -1); border-radius: var(--dm-radius-sm); font-size: 0.875rem; color: var(--dm-c-text-secondary); transition: background var(--dm-transition), color var(--dm-transition); }
 .sidebar a:hover { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); text-decoration: none; }
