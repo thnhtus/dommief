@@ -32,15 +32,22 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: pnpm install --frozen-lockfile
       - run: pnpm -C packages/core build
-      - name: Publish core
-        if: ${{ inputs.package == 'all' || inputs.package == 'core' }}
-        working-directory: packages/core
-        run: npm publish --access public
+      - run: pnpm -C packages/theme-default build
+      # Version đã có trên npm thì bỏ qua (chạy "all" khi chỉ bump 1 package).
+      # pnpm publish thay workspace:* bằng version thật.
+      - name: Publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish theme-default
-        if: ${{ inputs.package == 'all' || inputs.package == 'theme-default' }}
-        working-directory: packages/theme-default
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PKG: ${{ inputs.package }}
+        run: |
+          for d in core theme-default; do
+            [ "$PKG" = all ] || [ "$PKG" = "$d" ] || continue
+            cd "packages/$d"
+            v=$(jq -r '.name+"@"+.version' package.json)
+            if npm view "$v" version >/dev/null 2>&1; then
+              echo "$v đã publish, bỏ qua"
+            else
+              pnpm publish --access public --no-git-checks
+            fi
+            cd - >/dev/null
+          done
