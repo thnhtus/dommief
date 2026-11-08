@@ -18,8 +18,8 @@ export interface ThemeChain {
   local: ThemeManifest | null;
   /** Theme package khai ở config `theme`; bằng `fallback` nếu config trỏ default. */
   pkg: ThemeManifest;
-  /** `dommief-theme-default`, luôn là đáy. */
-  fallback: ThemeManifest;
+  /** `dommief-theme-default`, là đáy; `null` khi theme custom và default không được cài. */
+  fallback: ThemeManifest | null;
 }
 
 function tryLoadLocal(cwd: string): ThemeManifest | null {
@@ -48,8 +48,18 @@ function tryLoadLocal(cwd: string): ThemeManifest | null {
 export function loadThemeChain(cwd: string, config: Pick<ResolvedConfig, 'theme'>): ThemeChain {
   const themeName = config.theme ?? DEFAULT_THEME;
   const pkg = loadTheme({ cwd, theme: themeName });
-  const fallback = themeName === DEFAULT_THEME ? pkg : loadTheme({ cwd, theme: DEFAULT_THEME });
+  const fallback = themeName === DEFAULT_THEME ? pkg : tryLoadDefault(cwd);
   return { local: tryLoadLocal(cwd), pkg, fallback };
+}
+
+// Theme custom đã đủ 3 layout (loadThemeManifest bắt buộc) → default chỉ là dự phòng, không bắt cài.
+function tryLoadDefault(cwd: string): ThemeManifest | null {
+  try {
+    return loadTheme({ cwd, theme: DEFAULT_THEME });
+  } catch (e) {
+    if ((e as { code?: string }).code === 'theme_package_not_found') return null;
+    throw e;
+  }
 }
 
 function manifestsOf(chain: ThemeChain): ThemeManifest[] {
@@ -107,7 +117,7 @@ export function mergeLocaleStrings(chain: ThemeChain, localeId: string): Record<
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }
   };
   // local override không có bản dịch riêng ở v0.1 (chỉ builtins/slots/layouts) — merge chỉ pkg + fallback.
-  return { ...readJson(chain.fallback.locales[localeId]), ...readJson(chain.pkg.locales[localeId]) };
+  return { ...readJson(chain.fallback?.locales[localeId]), ...readJson(chain.pkg.locales[localeId]) };
 }
 
 export function resolveThemeSlots(opts: { cwd: string; config: Pick<ResolvedConfig, 'theme'> }): AliasMap {
