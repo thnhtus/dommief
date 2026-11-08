@@ -170,6 +170,7 @@ export function SearchBox() {
         // `type="search"` thêm role ngầm `searchbox` xung đột với `role="combobox"` tường minh
         // và nút "clear" gốc của trình duyệt không đi qua React event, dễ gây lệch state (review Q3).
         type="text"
+        id={uid}
         name="q"
         role="combobox"
         aria-label="Tìm kiếm"

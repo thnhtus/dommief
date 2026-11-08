@@ -65,7 +65,7 @@ a:hover { color: var(--dm-c-primary-hover); text-decoration: underline; text-und
 pre, code { font-family: var(--dm-font-mono); }
 pre { background: var(--dm-c-bg-code); padding: var(--dm-space-4); border-radius: var(--dm-radius); overflow-x: auto; border: 1px solid var(--dm-c-border-light); }
 code { font-size: 0.875em; padding: 0.15em 0.4em; background: var(--dm-c-bg-subtle); border: 1px solid var(--dm-c-border-light); border-radius: var(--dm-radius-sm); }
-pre code { padding: 0; background: transparent; border: 0; font-size: 0.9rem; }
+pre code { padding: 0; background: transparent; border: 0; font-size: 0.875rem; }
 table { border-collapse: collapse; width: 100%; margin: var(--dm-space-4) 0; }
 th, td { border: 1px solid var(--dm-c-border); padding: var(--dm-space-2) var(--dm-space-3); text-align: start; }
 th { background: var(--dm-c-bg-subtle); font-weight: 600; }
