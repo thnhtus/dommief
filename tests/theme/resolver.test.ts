@@ -13,7 +13,7 @@ describe('resolveSlot / buildAliasChain (DM-502)', () => {
     // Không có .dommief/theme ở fixtures/ cấp này -> local null -> rơi về pkg (== fallback, cùng default).
     expect(chain.local).toBeNull();
     const footer = resolveSlot('Footer', 'slots', chain);
-    expect(footer).toMatch(/theme-default[\\/]src[\\/]slots[\\/]Footer\.tsx$/);
+    expect(footer).toMatch(/core[\\/]theme-default[\\/]slots[\\/]Footer\.tsx$/);
   });
 
   it('(2) slot không tồn tại ở bất kỳ root nào → throw theme_slot_missing (không trả undefined)', () => {

@@ -1,18 +1,9 @@
 name: Publish
 
 # Chạy tay: Actions → Run workflow, hoặc `gh workflow run publish`.
+# Theme mặc định đóng gói sẵn trong `dommief` — chỉ publish 1 package.
 on:
   workflow_dispatch:
-    inputs:
-      package:
-        description: 'Package to publish'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - core
-          - theme-default
 
 jobs:
   publish:
@@ -32,22 +23,15 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: pnpm install --frozen-lockfile
       - run: pnpm -C packages/core build
-      - run: pnpm -C packages/theme-default build
-      # Version đã có trên npm thì bỏ qua (chạy "all" khi chỉ bump 1 package).
-      # pnpm publish thay workspace:* bằng version thật.
+      # Version đã có trên npm thì bỏ qua.
       - name: Publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          PKG: ${{ inputs.package }}
+        working-directory: packages/core
         run: |
-          for d in core theme-default; do
-            [ "$PKG" = all ] || [ "$PKG" = "$d" ] || continue
-            cd "packages/$d"
-            v=$(jq -r '.name+"@"+.version' package.json)
-            if npm view "$v" version >/dev/null 2>&1; then
-              echo "$v đã publish, bỏ qua"
-            else
-              pnpm publish --access public --no-git-checks
-            fi
-            cd - >/dev/null
-          done
+          v=$(jq -r '.name+"@"+.version' package.json)
+          if npm view "$v" version >/dev/null 2>&1; then
+            echo "$v đã publish, bỏ qua"
+          else
+            pnpm publish --access public --no-git-checks
+          fi

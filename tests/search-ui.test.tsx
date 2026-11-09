@@ -19,7 +19,7 @@ afterEach(cleanup);
 await import('@testing-library/jest-dom/vitest');
 const { MemoryRouter, Routes, Route, useLocation } = await import('react-router');
 const { SiteProvider, SearchRuntimeProvider } = await import('../packages/core/src/theme-api.tsx');
-const { SearchBox } = await import('../packages/theme-default/src/slots/SearchBox.tsx');
+const { SearchBox } = await import('../packages/core/theme-default/slots/SearchBox.tsx');
 import type { SearchRuntime, SearchHit, SearchResult } from '../packages/core/src/theme-api.tsx';
 
 // Đặc tả: DM-803 tiêu chí 1(a)-(f), 2, 4. Dùng SearchRuntimeProvider để tiêm một SearchRuntime

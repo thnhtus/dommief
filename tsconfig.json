@@ -7,13 +7,13 @@
     "paths": {
       "dommief": ["./packages/core/src/index.ts"],
       "dommief/theme-api": ["./packages/core/src/theme-api.tsx"],
-      "dommief/theme": ["./packages/theme-default/src/index.ts"],
-      "dommief/theme/slots/*": ["./packages/theme-default/src/slots/*.tsx", "./packages/theme-default/src/slots/*.ts"],
-      "dommief/theme/layouts/*": ["./packages/theme-default/src/layouts/*.tsx", "./packages/theme-default/src/layouts/*.ts"],
-      "dommief/theme/builtins/*": ["./packages/theme-default/src/builtins/*.tsx", "./packages/theme-default/src/builtins/*.ts"],
+      "dommief/theme": ["./packages/core/theme-default/index.ts"],
+      "dommief/theme/slots/*": ["./packages/core/theme-default/slots/*.tsx", "./packages/core/theme-default/slots/*.ts"],
+      "dommief/theme/layouts/*": ["./packages/core/theme-default/layouts/*.tsx", "./packages/core/theme-default/layouts/*.ts"],
+      "dommief/theme/builtins/*": ["./packages/core/theme-default/builtins/*.tsx", "./packages/core/theme-default/builtins/*.ts"],
       "dommief/client": ["./packages/core/src/client/index.tsx"]
     }
   },
-  "include": ["packages/*/src"],
+  "include": ["packages/core/src", "packages/core/theme-default"],
   "exclude": ["node_modules", "**/dist", "**/.dommief"]
 }

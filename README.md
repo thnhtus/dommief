@@ -11,7 +11,7 @@ Static site generator for documentation and demo sites, built on React, Vite, an
 ## Packages
 
 - `packages/core` — core library, CLI, Vite plugins, markdown pipeline
-- `packages/theme-default` — default theme components
+- `packages/core/theme-default` — default theme (bundled in `dommief`)
 - `examples/docs` — demo site
 
 ## Quick start
@@ -60,7 +60,7 @@ export default defineConfig({
 | docDirs | — | Extra doc directories |
 | forceKebabCase | true | Force kebab-case routes |
 | locales | [{id:'en-US',name:'English'}] | i18n (base or suffix mode, mutually exclusive) |
-| theme | 'dommief-theme-default' | Theme package |
+| theme | 'dommief-theme-default' | Theme package (default is bundled) |
 | themeConfig | {} | Theme config |
 | ssg.concurrency | 4 | Prerender concurrency |
 | ssg.exclude | [] | Skip prerender, still shell |

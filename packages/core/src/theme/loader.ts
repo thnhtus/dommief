@@ -15,14 +15,15 @@ function isComponentName(name: string): boolean {
   return /^[A-Z0-9]/.test(name);
 }
 
-/** Thư mục chứa `packages/` của chính monorepo dommief (để test/dev dùng theme-default từ source, không cần build trước). */
-function repoPackagesDir(): string | null {
+/** Theme mặc định đóng gói sẵn trong package `dommief` (`<pkg>/theme-default`), dù chạy từ `src/` hay `dist/`. */
+function bundledDefaultTheme(): string {
   let cur = path.dirname(fileURLToPath(import.meta.url));
   while (cur !== path.parse(cur).root) {
-    if (fs.existsSync(path.join(cur, 'pnpm-workspace.yaml'))) return path.join(cur, 'packages');
+    const candidate = path.join(cur, 'theme-default');
+    if (fs.existsSync(path.join(candidate, 'layouts'))) return candidate;
     cur = path.dirname(cur);
   }
-  return null;
+  throw new DommiefError('không tìm thấy theme mặc định đóng gói trong dommief', { code: 'theme_package_not_found' });
 }
 
 function assertInside(cwd: string, target: string, theme: string): void {
@@ -34,7 +35,7 @@ function assertInside(cwd: string, target: string, theme: string): void {
   }
 }
 
-/** `theme` là path tương đối (bắt đầu bằng `.`), tên package trong `node_modules`, hoặc tên package nguồn trong monorepo (chỉ khi dev/test dommief chính nó). */
+/** `theme` là path tương đối (bắt đầu bằng `.`), tên package trong `node_modules`, hoặc `dommief-theme-default` (đóng gói sẵn). */
 export function resolveThemeRoot(cwd: string, theme: string): string {
   const isPathLike = theme.startsWith('.') || theme.startsWith('/');
   let root: string | null = null;
@@ -46,17 +47,11 @@ export function resolveThemeRoot(cwd: string, theme: string): string {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) root = candidate;
     if (!root) throw new DommiefError(`không tìm thấy theme tại đường dẫn "${theme}"`, { code: 'theme_package_not_found' });
     assertInside(cwd, root, theme);
+  } else if (theme === DEFAULT_THEME) {
+    return bundledDefaultTheme();
   } else {
     const nmCandidate = path.resolve(cwd, 'node_modules', theme);
     if (fs.existsSync(nmCandidate)) root = nmCandidate;
-    else {
-      // Fallback chỉ dùng khi chạy BÊN TRONG chính monorepo dommief (test/dogfood không cài qua
-      // node_modules): không áp dụng assertInside vì đây là quy ước nội bộ, không phải input user.
-      const packages = repoPackagesDir();
-      const pkgDirName = theme === DEFAULT_THEME ? 'theme-default' : theme;
-      const srcCandidate = packages ? path.join(packages, pkgDirName) : null;
-      if (srcCandidate && fs.existsSync(srcCandidate)) root = srcCandidate;
-    }
     if (!root) {
       throw new DommiefError(`không tìm thấy theme package "${theme}" (đã thử node_modules/${theme})`, { code: 'theme_package_not_found' });
     }

@@ -42,8 +42,8 @@ describe('loadTheme (DM-501)', () => {
     expect(() => resolveThemeRoot(minimal, '../outside')).toThrow(/theme/);
   });
 
-  it('resolve theo tên package nguồn trong chính monorepo (dommief-theme-default) không bị chặn bởi theme_path_escape', () => {
+  it('resolve theme mặc định đóng gói trong dommief không bị chặn bởi theme_path_escape', () => {
     const root = resolveThemeRoot(fixtures, 'dommief-theme-default');
-    expect(root).toMatch(/theme-default[\\/]src$/);
+    expect(root).toMatch(/core[\\/]theme-default$/);
   });
 });

@@ -17,10 +17,10 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router'],
     alias: [
       { find: /^dommief\/theme-api$/, replacement: root('packages/core/src/theme-api.tsx') },
-      { find: /^dommief\/theme$/, replacement: root('packages/theme-default/src/index.ts') },
-      { find: /^dommief\/theme\/slots\/(.*)$/, replacement: root('packages/theme-default/src/slots/$1') },
-      { find: /^dommief\/theme\/layouts\/(.*)$/, replacement: root('packages/theme-default/src/layouts/$1') },
-      { find: /^dommief\/theme\/builtins\/(.*)$/, replacement: root('packages/theme-default/src/builtins/$1') },
+      { find: /^dommief\/theme$/, replacement: root('packages/core/theme-default/index.ts') },
+      { find: /^dommief\/theme\/slots\/(.*)$/, replacement: root('packages/core/theme-default/slots/$1') },
+      { find: /^dommief\/theme\/layouts\/(.*)$/, replacement: root('packages/core/theme-default/layouts/$1') },
+      { find: /^dommief\/theme\/builtins\/(.*)$/, replacement: root('packages/core/theme-default/builtins/$1') },
     ],
   },
   // e2e/ là của Playwright (`pnpm test:e2e`) — vitest không được nhặt.

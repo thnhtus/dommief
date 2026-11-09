@@ -39,7 +39,7 @@ export default defineConfig({
   // `dist/cli.js` của nhau — cùng race ENOENT đã gặp ở vitest), rồi chạy 2 preview song song.
   webServer: {
     command: [
-      `${buildCore} && pnpm -C ../../packages/theme-default build`,
+      `${buildCore}`,
       `node ${CLI} build`,
       `node ${CLI} build --base /sub/ --out-dir dist-sub`,
       `(node ${CLI} preview --port ${PORT} & node ${CLI} preview --base /sub/ --out-dir dist-sub --port ${PORT_SUB} & wait)`,
