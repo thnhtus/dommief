@@ -65,5 +65,10 @@
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
     "vite": "^8.3.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thnhtus/dommief.git",
+    "directory": "packages/core"
   }
 }
