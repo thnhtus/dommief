@@ -18,20 +18,19 @@ jobs:
           version: 11.1.2
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          # Node 24 kèm npm 11 (>= 11.5.1 cần cho trusted publishing/OIDC).
+          node-version: '24'
           cache: pnpm
           registry-url: 'https://registry.npmjs.org'
       - run: pnpm install --frozen-lockfile
       - run: pnpm -C packages/core build
       # Version đã có trên npm thì bỏ qua.
       - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: packages/core
         run: |
           v=$(jq -r '.name+"@"+.version' package.json)
           if npm view "$v" version >/dev/null 2>&1; then
             echo "$v đã publish, bỏ qua"
           else
-            pnpm publish --access public --no-git-checks
+            npm publish --access public
           fi
