@@ -189,12 +189,18 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   // nằm ở `site.routes[r.id].file` (sinh bởi siteModule.ts, đầy đủ kiểu `Route`).
   const routes: Route[] = serverMod.routes ?? serverMod.default?.routes ?? [];
   const render: (url: string) => Promise<string> = serverMod.render ?? serverMod.default?.render;
-  const site: { routes?: Record<string, { file: string }>; meta?: Record<string, { toc?: TocItem[]; frontmatter?: Record<string, unknown> }> } | undefined = serverMod.site ?? serverMod.default?.site;
+  const site: { routes?: Record<string, { file: string; locale?: string }>; meta?: Record<string, { toc?: TocItem[]; frontmatter?: Record<string, unknown> }> } | undefined = serverMod.site ?? serverMod.default?.site;
   const fileOf = (routeId: string): string => site?.routes?.[routeId]?.file ?? routeId;
   const canonicalHostname: string | undefined = config.sitemap === false ? undefined : config.sitemap.hostname;
   const escapeAttr = (s: string) => s.replace(/"/g, '&quot;');
-  const wrap = (html: string, routePath: string) => {
+  // `<html lang>` theo locale của route (template tĩnh luôn là lang mặc định) — WCAG 3.1.1.
+  const defaultLang =
+    typeof config.locales === 'object' && Array.isArray(config.locales) ? config.locales[0]?.id : undefined;
+  const langOf = (routeId?: string): string | undefined => (routeId ? site?.routes?.[routeId]?.locale : undefined) ?? defaultLang;
+  const wrap = (html: string, routePath: string, routeId?: string) => {
     let out = template.replace(ROOT_PLACEHOLDER, () => `<div id="root">${html}</div>`);
+    const lang = langOf(routeId);
+    if (lang) out = /<html[^>]*\slang=/i.test(out) ? out.replace(/(<html[^>]*\slang=)["'][^"']*["']/i, `$1"${escapeAttr(lang)}"`) : out.replace(/<html(\s|>)/i, `<html lang="${escapeAttr(lang)}"$1`);
     if (canonicalHostname && routePath !== '/404') {
       const href = canonicalUrl(canonicalHostname, config.base, routePath);
       if (!/<link[^>]+rel=["']canonical["']/i.test(out)) {
@@ -219,9 +225,9 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
         throw new DommiefError(`prerender ${r.path}: ${formatError(e)}`, { code: 'ssg_render_failed' });
       }
       if (linkCheckEnabled) linkRefs.push(...collect(r.id, html, fileOf(r.id)));
-      writePage(r, wrap(html, r.path));
+      writePage(r, wrap(html, r.path, r.id));
     });
-    for (const r of plan.shell) writePage(r, wrap(template, r.path));
+    for (const r of plan.shell) writePage(r, wrap(template, r.path, r.id));
     // 404.html: route "*" của cùng cây <Routes>
     try {
       fs.writeFileSync(path.join(distDir, '404.html'), wrap(await render('/404'), '/404'));
