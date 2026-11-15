@@ -59,6 +59,7 @@ export async function buildSearchIndex(opts: BuildSearchIndexOptions): Promise<B
       // group by tocIndex / orphan
       for (let i = 0; i < fragments.length; i++) {
         const f = fragments[i] as TextFragment;
+        if (f.skipSearch) continue; // DM-806: bỏ code block khỏi index
         const tocIndex = f.tocIndex;
         const sectionTitle = tocIndex !== undefined && toc[tocIndex] ? toc[tocIndex].title : title;
         const pageKey = route.id;
