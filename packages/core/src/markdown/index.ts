@@ -22,7 +22,7 @@ import { DommiefError } from './errors.js';
 import { createPluginHost, type PluginHookHost } from '../plugins.js';
 
 export interface TocItem { id: string; depth: number; title: string; }
-export interface TextFragment { type?: 'content' | 'title'; value: string; paraId?: number; tocIndex?: number; }
+export interface TextFragment { type?: 'content' | 'title'; value: string; paraId?: number; tocIndex?: number; skipSearch?: boolean; }
 export interface PageMeta {
   frontmatter: Record<string, unknown>;
   toc: TocItem[];

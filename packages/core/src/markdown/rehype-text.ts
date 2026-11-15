@@ -39,6 +39,16 @@ export function rehypeText() {
         const paraId = paraIdOf.get(container)!;
         const frag: any = { type: 'content', value: v, paraId };
         if (currentTocIndex !== undefined) frag.tocIndex = currentTocIndex;
+        // DM-806: không index code block (nằm trong `pre`/`code`). Code chiếm phần lớn
+        // dung lượng index nhưng hiếm khi được tìm kiếm; Skip giúp index nhẹ hơn.
+        if (ancestors.some((a) => a?.tagName === 'pre' || a?.tagName === 'code')) {
+          frag.skipSearch = true;
+        }
+        // DM-806: không index code block (nằm trong `pre`/`code`). Code chiếm phần lớn
+        // dung lượng index nhưng hiếm khi được tìm kiếm; Skip giúp index nhẹ hơn.
+        if (ancestors.some((a) => a?.tagName === 'pre' || a?.tagName === 'code')) {
+          frag.skipSearch = true;
+        }
         texts.push(frag);
         return;
       }

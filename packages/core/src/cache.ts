@@ -9,7 +9,7 @@ import { CODE_PIPELINE_VERSION } from './markdown/rehype-code.js';
 // Chỉ dùng cho `dommief build`; dev chạy trong bộ nhớ Vite.
 
 /** Bump khi đổi shape payload hoặc logic transform: mọi entry cũ bị bỏ qua, không phục vụ `code` cũ. */
-export const CACHE_VERSION = 3; // v3: rename DumiDemo/DumiApi -> DomDemo/DomApi (aliases giữ lại)
+export const CACHE_VERSION = 4; // v4: rehypeText thêm `skipSearch` cho code block (DM-806)
 
 export interface CachePayload {
   code: string;

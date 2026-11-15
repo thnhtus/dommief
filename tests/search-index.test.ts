@@ -25,6 +25,22 @@ describe('search index', () => {
   });
 });
 
+describe('DM-806: code block không vào index', () => {
+  it('bỏ text trong pre/code, giữ đoạn văn', async () => {
+    const md = '# Page\n\nProse paragraph here.\n\n```ts\nconst secretCodeToken = 1;\n```\n';
+    const meta = (await transformMarkdown(md, 'a.md')).meta;
+    const res: any = await buildSearchIndex({
+      routes: [{ id: 'a', path: '/a', file: 'a.md' }] as any,
+      loadPageMeta: async () => meta,
+      config: { locales: [{ id: 'en-US', name: 'English', base: '/', suffix: '' }] as any },
+    });
+    const { createMiniSearchConfig } = await import('../packages/core/src/search.ts');
+    const ms = MiniSearch.loadJSON(JSON.stringify(res.locales['en-US']), { fields: ['value', 'pageTitle', 'sectionTitle'], storeFields: ['value'], ...createMiniSearchConfig() } as any);
+    expect(ms.search('prose').length).toBeGreaterThan(0);
+    expect(ms.search('secretCodeToken').length).toBe(0);
+  });
+});
+
 describe('tokenizer (#14)', () => {
   it('bỏ dấu câu cuối từ và đổi đ→d', async () => {
     const { createMiniSearchConfig } = await import('../packages/core/src/search.ts');
