@@ -12,6 +12,7 @@ import { rehypeSlug, rehypeAutolinkHeadings } from './rehype-slug.js';
 import { rehypeLink } from './rehype-link.js';
 import { rehypeImg } from './rehype-img.js';
 import { rehypeDesc, rehypeStrip } from './rehype-desc.js';
+import { rehypeTaskList } from './rehype-task-list.js';
 import { rehypeText } from './rehype-text.js';
 import { rehypeDemo, remarkDemoMeta } from './rehype-demo.js';
 import { rehypeApi } from './rehype-api.js';
@@ -67,6 +68,7 @@ export async function transformMarkdown(source: string, file: string, opts: Tran
       .use(rehypeLink, opts.byFile ? { byFile: opts.byFile, base: opts.base ?? '/' } : {})
       .use(rehypeImg)
       .use(rehypeDesc)
+      .use(rehypeTaskList)
       .use(rehypeStrip)
       .use(rehypeText)
       .use(rehypeDemo)
