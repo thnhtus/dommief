@@ -56,24 +56,30 @@ export async function buildSearchIndex(opts: BuildSearchIndexOptions): Promise<B
       const title = (meta.frontmatter?.title as string) || route.id;
       const toc = meta.toc || [];
       const fragments = meta.texts || [];
-      // group by tocIndex / orphan
-      for (let i = 0; i < fragments.length; i++) {
-        const f = fragments[i] as TextFragment;
-        if (f.skipSearch) continue; // DM-806: bỏ code block khỏi index
-        const tocIndex = f.tocIndex;
+      // Gộp các text node thành MỘT doc / đoạn (paraId). Trước đây mỗi node là một doc riêng,
+      // nên lặp lại pageTitle/sectionTitle/path ở mọi storedField và phình ngưỡng index gấp 3–4 lần
+      // trong khi nội dung văn bản chỉ chiếm phần nhỏ.
+      const groups = new Map<number, { tocIndex: number | undefined; parts: string[] }>();
+      for (const f of fragments as TextFragment[]) {
+        if (f.skipSearch) continue;
+        const key = f.paraId ?? 0;
+        const g = groups.get(key) ?? { tocIndex: f.tocIndex, parts: [] };
+        g.parts.push(f.value);
+        groups.set(key, g);
+      }
+      for (const [paraId, g] of groups) {
+        const tocIndex = g.tocIndex;
         const sectionTitle = tocIndex !== undefined && toc[tocIndex] ? toc[tocIndex].title : title;
-        const pageKey = route.id;
-        const sectionKey = `${route.id}::${tocIndex ?? 'orphan'}`;
         docs.push({
-          id: `${route.id}#${f.paraId ?? i}#${i}`,
+          id: `${route.id}#${paraId}`,
           routeId: route.id,
           path: route.path,
           pageTitle: title,
           sectionTitle,
-          paraId: f.paraId ?? 0,
-          value: f.value,
-          pageKey,
-          sectionKey,
+          paraId,
+          value: g.parts.join(' '),
+          pageKey: route.id,
+          sectionKey: `${route.id}::${tocIndex ?? 'orphan'}`,
         });
       }
     }
