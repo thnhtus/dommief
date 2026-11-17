@@ -57,6 +57,8 @@ export interface EmitContext {
   outDir: string;
   routes: Route[];
   log: Logger;
+  /** DM-912: locales cần cho alternates trong sitemap xhtml:link + DM-916 parity warning. */
+  locales: ResolvedConfig['locales'];
 }
 
 /** Bước phát thêm file vào `outDir` sau SSG. Thêm tính năng = thêm một emitter, không sửa `runBuild`. */
@@ -68,8 +70,8 @@ export const emitters: Emitter[] = [];
 // DM-708: sitemap/robots phát sau khi SSG ghi HTML (dùng danh sách routes đã prerender).
 emitters.push({
   name: 'sitemap',
-  run: ({ config, outDir, routes, log }) => {
-    writeSitemapAndRobots({ outDir, routes, sitemap: config.sitemap, robots: config.robots, base: config.base, log });
+  run: ({ config, outDir, routes, log, locales }) => {
+    writeSitemapAndRobots({ outDir, routes, sitemap: config.sitemap, robots: config.robots, base: config.base, locales, log });
   },
 });
 
@@ -302,7 +304,7 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     });
   }
 
-  for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes: plan.prerender, log }); });
+  for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes: plan.prerender, locales: config.locales, log }); });
   await timed('plugins', () => host.runBuildEnd({ config, outDir: distDir, routes }));
 
   cache.finish();

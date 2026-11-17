@@ -19,13 +19,27 @@ export function canonicalUrl(hostname: string, base: string, routePath: string):
   return host + (b + p).replace(/\/{2,}/g, '/').replace(/^(https?:\/)([^/])/, '$1/$2');
 }
 
+/** DM-912: nếu có route với >=2 bản dịch (alternates dài >=2), xuất `xhtml:link` cho mỗi url. */
+function alternateLinks(route: Route, locales: { id: string }[], base: string, hostname: string): string {
+  const alts = route.alternates;
+  if (!alts || Object.keys(alts).length < 2) return '';
+  const links = locales
+    .filter((l) => alts[l.id])
+    .map((l) => `<xhtml:link rel="alternate" hreflang="${escapeXml(l.id)}" href="${escapeXml(canonicalUrl(hostname, base, alts[l.id]!))}"/>`);
+  const def = locales[0];
+  if (def && alts[def.id]) links.push(`<xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(canonicalUrl(hostname, base, alts[def.id]!))}"/>`);
+  return links.join('');
+}
+
 /** `#404`, route động (`:`/`*`), và route trong `sitemap.exclude` không vào sitemap. */
-export function buildSitemap(routes: Route[], config: SitemapConfig, base: string): string {
+export function buildSitemap(routes: Route[], config: SitemapConfig, base: string, locales: { id: string }[] = []): string {
+  const emitXhtml = routes.some((r) => r.alternates && Object.keys(r.alternates).length >= 2);
+  const xmlns = emitXhtml ? ' xmlns:xhtml="http://www.w3.org/1999/xhtml"' : '';
   const urls = routes
     .filter((r) => r.path !== '/404' && !/[:*]/.test(r.path) && !matchExclude(r.path, config.exclude))
-    .map((r) => `  <url><loc>${escapeXml(canonicalUrl(config.hostname, base, r.path))}</loc></url>`)
+    .map((r) => `  <url><loc>${escapeXml(canonicalUrl(config.hostname, base, r.path))}</loc>${alternateLinks(r, locales, base, config.hostname)}</url>`)
     .join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${xmlns}>\n${urls}\n</urlset>\n`;
 }
 
 export function buildRobots(sitemapUrl: string): string {
@@ -43,6 +57,7 @@ export function writeSitemapAndRobots(opts: {
   sitemap: false | SitemapConfig;
   robots: boolean;
   base: string;
+  locales: { id: string }[];
   log: { warn(msg: string): void };
 }): void {
   if (opts.sitemap === false) return;
@@ -50,7 +65,7 @@ export function writeSitemapAndRobots(opts: {
     opts.log.warn('sitemap.hostname thiếu — bỏ qua sitemap.xml/robots.txt');
     return;
   }
-  const xml = buildSitemap(opts.routes, opts.sitemap, opts.base);
+  const xml = buildSitemap(opts.routes, opts.sitemap, opts.base, opts.locales);
   fs.writeFileSync(path.join(opts.outDir, 'sitemap.xml'), xml);
   if (opts.robots) {
     const sitemapUrl = canonicalUrl(opts.sitemap.hostname, opts.base, '/').replace(/\/$/, '') + '/sitemap.xml';
