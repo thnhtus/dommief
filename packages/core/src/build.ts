@@ -154,10 +154,11 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
 
   // DM-916: `requireParity` ép đủ bản dịch — fail TRƯỚC khi tốn thời gian build client/SSR.
   // Cảnh báo thường (không ép) đi qua `log.warn` ở đây để người dùng thấy ngay khi build.
-  if (config.i18n.requireParity) {
+  if (config.locales.length > 1) {
     const table = buildRouteTable({ cwd: root, config, hooks: host });
     const warning = table.warnings.find((w) => w.startsWith('Missing translations for '));
-    if (warning) throw new DommiefError(warning, { code: 'i18n_parity' });
+    if (warning && config.i18n.requireParity) throw new DommiefError(warning, { code: 'i18n_parity' });
+    if (warning) log.warn(warning);
   }
 
   // (a) client build → outDir/

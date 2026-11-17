@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { createSite } from './helpers/fixture-site.ts';
 
@@ -10,7 +11,10 @@ describe('i18n parity (DM-916)', () => {
     });
     fs.writeFileSync(path.join(s.dir, 'docs', 'guide', 'intro.vi-VN.md'), '# Giới thiệu\n');
     fs.writeFileSync(path.join(s.dir, 'docs', 'only-en.md'), '# Only en\n');
-    expect(() => s.build()).not.toThrow(); // warning, không fail (requireParity mặc định false)
+    // warning, không fail (requireParity mặc định false) — log.warn ra stderr
+    const r = spawnSync('node', [path.join(process.cwd(), 'packages/core/dist/cli.js'), 'build'], { cwd: s.dir, encoding: 'utf8' });
+    expect(r.status).toBe(0);
+    expect(r.stderr).toMatch(/Missing translations for \d+ keys/);
     s.cleanup();
   });
 

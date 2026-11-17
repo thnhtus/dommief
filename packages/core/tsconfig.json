@@ -1,1 +1,18 @@
-{"extends": "../../tsconfig.base.json", "compilerOptions": {"noEmit": true, "types": ["node"]}, "include": ["src", "theme-default"]}
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "dommief": ["./src/index.ts"],
+      "dommief/theme-api": ["./src/theme-api.tsx"],
+      "dommief/theme": ["./theme-default/index.ts"],
+      "dommief/theme/slots/*": ["./theme-default/slots/*.tsx", "./theme-default/slots/*.ts"],
+      "dommief/theme/layouts/*": ["./theme-default/layouts/*.tsx", "./theme-default/layouts/*.ts"],
+      "dommief/theme/builtins/*": ["./theme-default/builtins/*.tsx", "./theme-default/builtins/*.ts"],
+      "dommief/client": ["./src/client/index.tsx"]
+    }
+  },
+  "include": ["src", "theme-default"]
+}
