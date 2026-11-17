@@ -54,6 +54,8 @@ export interface SiteData {
   sidebar: Record<string, SidebarGroup[]>;
   /** DM-803: theme ẩn ô tìm kiếm khi `false`. Optional để site data cũ/tay vẫn hợp lệ (mặc định bật). */
   search?: { enabled: boolean };
+  /** DM-913: messages per locale (theme-default en-US + vi-VN). Optional — các theme khác có thể không dùng. */
+  messages?: Record<string, Record<string, string>>;
 }
 
 /** Phần config mà tầng route cần — ResolvedConfig (DM-201) thoả cấu trúc này. */

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { DommiefError } from '../markdown/errors.js';
 import type { ResolvedConfig } from '../config.js';
 import { loadTheme, loadThemeManifest, DEFAULT_THEME } from './loader.js';
-import { scanComponents } from './loader.js';
+import { scanComponents, scanLocales } from './loader.js';
 import type { ThemeLayoutName, ThemeManifest } from './types.js';
 
 // Đặc tả: docs/spec/THEME-API.md §3, backlog DM-502.
@@ -39,7 +39,7 @@ function tryLoadLocal(cwd: string): ThemeManifest | null {
     builtins: scanComponents(path.join(localRoot, 'builtins')),
     slots: scanComponents(path.join(localRoot, 'slots')),
     layouts,
-    locales: {},
+    locales: scanLocales(path.join(localRoot, 'locales')),
     plugin: null,
   };
 }
@@ -110,14 +110,24 @@ export function buildAliasChain(cwd: string, config: Pick<ResolvedConfig, 'theme
   return aliases;
 }
 
-/** Merge nông theo key, local > pkg > default (THEME-API §7.5). */
+/** Merge nông theo key, local > pkg > default (THEME-API §7.5). DM-913: thiếu key ở locale
+ * hiện tại thì rơi về en-US ở cùng chuỗi ưu tiên (không hiện key thô). */
 export function mergeLocaleStrings(chain: ThemeChain, localeId: string): Record<string, string> {
   const readJson = (file: string | undefined): Record<string, string> => {
     if (!file) return {};
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }
   };
-  // local override không có bản dịch riêng ở v0.1 (chỉ builtins/slots/layouts) — merge chỉ pkg + fallback.
-  return { ...readJson(chain.fallback?.locales[localeId]), ...readJson(chain.pkg.locales[localeId]) };
+  const readAll = (id: string): Record<string, string> => ({
+    ...readJson(chain.fallback?.locales[id]),
+    ...readJson(chain.pkg.locales[id]),
+    ...readJson(chain.local?.locales[id]),
+  });
+  return { ...readAll('en-US'), ...readAll(localeId) };
+}
+
+/** DM-913: messages cho mọi locale đã cấu hình — nhúng vào `virtual:dommief/site`. */
+export function buildLocaleMessages(chain: ThemeChain, locales: { id: string }[]): Record<string, Record<string, string>> {
+  return Object.fromEntries(locales.map((l) => [l.id, mergeLocaleStrings(chain, l.id)]));
 }
 
 export function resolveThemeSlots(opts: { cwd: string; config: Pick<ResolvedConfig, 'theme'> }): AliasMap {

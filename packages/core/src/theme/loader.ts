@@ -97,7 +97,7 @@ export function scanComponents(dir: string): Record<string, string> {
   return out;
 }
 
-function scanLocales(dir: string): Record<string, string> {
+export function scanLocales(dir: string): Record<string, string> {
   const out: Record<string, string> = {};
   if (!fs.existsSync(dir)) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

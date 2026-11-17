@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useSiteData, useSiteSearch, type SearchHit } from 'dommief/theme-api';
+import { useSiteData, useSiteSearch, useT, type SearchHit } from 'dommief/theme-api';
 import styles from '../styles/search.module.css';
 import { buildSnippet } from '../utils/search-snippet.js';
 
@@ -55,6 +55,7 @@ function groupHits(hits: SearchHit[]): Group[] {
 export function SearchBox() {
   const site = useSiteData();
   const { search } = useSiteSearch();
+  const t = useT();
   const navigate = useNavigate();
   const uid = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -152,14 +153,14 @@ export function SearchBox() {
   // thái 'results' phải tự thông báo SỐ LƯỢNG — trước đây 'results' không có message nào, người
   // dùng screen reader nghe "Đang tìm…" rồi im lặng, không biết có bao nhiêu kết quả.
   const message =
-    status === 'results' ? `${visible.length} kết quả` :
-    status === 'empty' ? 'Không tìm thấy kết quả' :
-    status === 'error' ? 'Không tìm được — thử lại sau' : '';
+    status === 'results' ? t('search.count', { n: visible.length }) :
+    status === 'empty' ? t('search.empty') :
+    status === 'error' ? t('search.error') : '';
 
   return (
     <div
       role="search"
-      aria-label="Tìm kiếm trong tài liệu"
+      aria-label={t('search.label')}
       className={styles.search!}
       ref={rootRef}
       onBlur={(e) => { if (!rootRef.current?.contains(e.relatedTarget as Node | null)) setOpen(false); }}
@@ -173,13 +174,13 @@ export function SearchBox() {
         id={uid}
         name="q"
         role="combobox"
-        aria-label="Tìm kiếm"
+        aria-label={t('search.box')}
         aria-expanded={expanded}
         {...(hasListbox ? { 'aria-controls': `${uid}-list` } : {})}
         aria-autocomplete="list"
         {...(expanded && active >= 0 ? { 'aria-activedescendant': optionId(active) } : {})}
         autoComplete="off"
-        placeholder="Tìm kiếm…"
+        placeholder={t('search.placeholder')}
         className={styles.input!}
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
@@ -192,7 +193,7 @@ export function SearchBox() {
           ref={listRef}
           id={`${uid}-list`}
           role="listbox"
-          aria-label="Kết quả tìm kiếm"
+          aria-label={t('search.results')}
           className={styles.list!}
           // `onPointerDown` (không chỉ `onMouseDown`): bao cả chuột/bút/chạm, ngăn blur chạy
           // trước `onClick` của option khi người dùng chạm bằng ngón tay (review Q4).

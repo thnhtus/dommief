@@ -35,6 +35,24 @@ export function localeIdFor(site: SiteData, pathname: string): string {
   return hit?.id ?? def;
 }
 
+/** DM-913: locale của trang hiện tại (cùng quy tắc với `localeIdFor`). */
+export function useLocale(): string {
+  const site = useSiteData();
+  const { pathname } = useLocation();
+  return localeIdFor(site, pathname);
+}
+
+/** DM-913: `t(key, vars?)` tra `site.messages[locale]`; thiếu key → trả chính key (không throw); `{n}` thay bằng `vars.n`. */
+export function useT(): (key: string, vars?: Record<string, string | number>) => string {
+  const site = useSiteData();
+  const locale = useLocale();
+  const table = site.messages?.[locale] ?? {};
+  return (key, vars) => {
+    const raw = table[key] ?? key;
+    return vars ? raw.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m)) : raw;
+  };
+}
+
 export function useRouteMeta(): PageSummary {
   const site = useSiteData();
   const { pathname } = useLocation();

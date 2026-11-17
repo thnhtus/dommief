@@ -1,0 +1,13 @@
+{
+  "skipToContent": "Bỏ qua điều hướng",
+  "search.label": "Tìm kiếm trong tài liệu",
+  "search.box": "Tìm kiếm",
+  "search.placeholder": "Tìm kiếm…",
+  "search.results": "Kết quả tìm kiếm",
+  "search.count": "{n} kết quả",
+  "search.empty": "Không tìm thấy kết quả",
+  "search.error": "Không tìm được — thử lại sau",
+  "colorSwitch.auto": "Đổi giao diện sáng/tối",
+  "colorSwitch.toLight": "Chuyển sang giao diện sáng",
+  "colorSwitch.toDark": "Chuyển sang giao diện tối"
+}
