@@ -36,7 +36,7 @@ export interface TransformMarkdownOptions {
   hooks?: PluginHookHost;
   plugins?: unknown[];
   /** file md tuyệt đối → route; để `rehypeLink` đổi `./x.md` thành path route thật. */
-  byFile?: Record<string, { path: string }>;
+  byFile?: Record<string, { path: string; locale?: string; alternates?: Record<string, string> }>;
   /** `config.base` để gắn tiền tố cho link nội bộ. */
   base?: string;
   /** `config.markdown` (shiki + lineNumbers), DM-706. */

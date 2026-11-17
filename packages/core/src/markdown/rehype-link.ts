@@ -3,8 +3,9 @@ import { visit } from 'unist-util-visit';
 import { winPath } from '../utils/path.js';
 
 export interface RehypeLinkOptions {
-  /** file md tuyệt đối (POSIX) → path của route. Không có ⇒ chỉ bỏ đuôi `.md` (không kiểm tra). */
-  byFile?: Record<string, { path: string }>;
+  /** file md tuyệt đối (POSIX) → route. Không có ⇒ chỉ bỏ đuôi `.md` (không kiểm tra).
+   * DM-915: thêm `locale`/`alternates` để link `.md` trỏ đúng bản dịch của file nguồn. */
+  byFile?: Record<string, { path: string; locale?: string; alternates?: Record<string, string> }>;
   /** `config.base` ('/sub/'): `<a>` thường không có basename của router nên phải gắn tiền tố ở đây. */
   base?: string;
 }
@@ -19,6 +20,8 @@ export function rehypeLink(options: RehypeLinkOptions = {}) {
   return (tree: any, file: any) => {
     const from = winPath(String(file?.path ?? ''));
     const prefix = (options.base ?? '/').replace(/\/$/, '');
+    // DM-915: locale của file nguồn — quyết định link `.md` trỏ bản dịch nào.
+    const sourceLocale = options.byFile?.[from]?.locale;
     const warnings: string[] = Array.isArray(file?.data?.warnings) ? file.data.warnings : [];
     visit(tree, 'element', (node: any) => {
       if (node.tagName !== 'a' || !node.properties?.href) return;
@@ -33,7 +36,12 @@ export function rehypeLink(options: RehypeLinkOptions = {}) {
       }
       const abs = path.posix.resolve(path.posix.dirname(from), m[1]);
       const route = options.byFile[abs];
-      if (route) node.properties.href = (route.path === '/' ? prefix + '/' : prefix + route.path) + tail;
+      if (route) {
+        // Bản dịch của locale nguồn nếu có; không có thì giữ bản mặc định (DM-916 lo parity).
+        const localized = sourceLocale ? route.alternates?.[sourceLocale] : undefined;
+        const target = localized ?? route.path;
+        node.properties.href = (target === '/' ? prefix + '/' : prefix + target) + tail;
+      }
       else warnings.push(`link_unresolved: "${href}" trong ${from} không trỏ tới file md nào thuộc docDirs`);
     });
     // DM-410: gắn dòng nguồn lên MọI `<a>` nội bộ (kể cả link không đổi ở trên) để link-check
