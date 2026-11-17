@@ -5,6 +5,7 @@ import { DommiefError } from './markdown/errors.js';
 import { winPath } from './utils/path.js';
 import type { ResolvedLocale, Route, RouteConfig, RouteTable } from './types.js';
 import { createPluginHost, type PluginHookHost } from './plugins.js';
+import { findParityIssues, formatParityWarning } from './i18n-parity.js';
 
 // Đặc tả: docs/spec/ROUTING.md §1–§5. Thứ tự bắt buộc trong normalizeRoutes:
 // locale → index/README → '.'→'/' → kebab → validate → trùng id/path.
@@ -235,11 +236,17 @@ export function buildRouteTable({ cwd, config, hooks, plugins }: { cwd: string; 
     byKey: {},
     configHash: routeConfigHash(config),
   };
+  const localeIds = config.locales.map((l) => l.id);
   for (const r of routes) {
     table.byId[r.id] = r;
     table.byPath[r.path] = r;
     table.byFile[r.file] = r;
-    if (r.key !== undefined) (table.byKey[r.key] ??= {})[r.locale ?? config.locales[0]!.id] = r;
+    if (r.key !== undefined) (table.byKey[r.key] ??= {})[r.locale ?? localeIds[0]!] = r;
   }
+  // DM-916: cảnh báo thiếu bản dịch (site ≥2 locale). `allowSingleLocale` trên config (routes.ts
+  // chỉ nhận `RouteConfig` — đọc qua `(config as any).i18n?.allowSingleLocale` nếu có).
+  const allowSingle = ((config as any).i18n?.allowSingleLocale as string[] | undefined) ?? [];
+  const parityWarning = formatParityWarning(findParityIssues(table, localeIds, allowSingle));
+  if (parityWarning) table.warnings.push(parityWarning);
   return table;
 }

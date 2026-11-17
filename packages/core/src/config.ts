@@ -64,6 +64,13 @@ export const ConfigSchema = z
       .default({ shiki: { themes: { light: 'github-light', dark: 'github-dark' } }, lineNumbers: false }),
     /** Search index (DM-801). */
     search: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
+    /** DM-916: cảnh báo/ép buộc đủ bản dịch cho mọi key đã dịch một phần. */
+    i18n: z
+      .object({
+        requireParity: z.boolean().default(false),
+        allowSingleLocale: z.array(z.string()).default([]),
+      })
+      .default({ requireParity: false, allowSingleLocale: [] }),
     plugins: z.array(z.any()).default([]),
   })
   .strict();
@@ -87,6 +94,7 @@ export interface ResolvedConfig extends RouteConfig {
   sitemap: false | { hostname: string; exclude: string[] };
   robots: boolean;
   search: { enabled: boolean };
+  i18n: { requireParity: boolean; allowSingleLocale: string[] };
   markdown: { shiki: false | { themes: { light: string; dark: string } }; lineNumbers: boolean };
   plugins?: DommiefPlugin[];
 }
@@ -190,6 +198,7 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     sitemap: c.sitemap,
     robots: c.robots ?? c.sitemap !== false,
     search: c.search,
+    i18n: c.i18n,
     markdown: c.markdown,
     plugins: (c.plugins ?? []) as DommiefPlugin[],
   };

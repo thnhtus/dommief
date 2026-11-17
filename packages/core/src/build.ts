@@ -5,6 +5,7 @@ import { build } from 'vite';
 import { dommiefPlugin } from './vite/plugin.js';
 import { resolveClientFile } from './paths.js';
 import { formatError, DommiefError } from './markdown/errors.js';
+import { buildRouteTable } from './routes.js';
 import type { ResolvedConfig } from './config.js';
 import type { PluginHookHost } from './plugins.js';
 import type { Logger } from './log.js';
@@ -150,6 +151,14 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   const textsByFile = new Map<string, import('./markdown/index.js').TextFragment[]>();
   const plugins = () => [dommiefPlugin({ root, config, host, cache, collectTexts: (file, texts) => textsByFile.set(file, texts) })];
   const distDir = path.resolve(root, config.outDir);
+
+  // DM-916: `requireParity` ép đủ bản dịch — fail TRƯỚC khi tốn thời gian build client/SSR.
+  // Cảnh báo thường (không ép) đi qua `log.warn` ở đây để người dùng thấy ngay khi build.
+  if (config.i18n.requireParity) {
+    const table = buildRouteTable({ cwd: root, config, hooks: host });
+    const warning = table.warnings.find((w) => w.startsWith('Missing translations for '));
+    if (warning) throw new DommiefError(warning, { code: 'i18n_parity' });
+  }
 
   // (a) client build → outDir/
   await timed('client', () => build({ root, plugins: plugins(), base: config.base, build: { outDir: distDir, emptyOutDir: true } }));
