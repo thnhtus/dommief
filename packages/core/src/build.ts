@@ -189,9 +189,15 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   // nằm ở `site.routes[r.id].file` (sinh bởi siteModule.ts, đầy đủ kiểu `Route`).
   const routes: Route[] = serverMod.routes ?? serverMod.default?.routes ?? [];
   const render: (url: string) => Promise<string> = serverMod.render ?? serverMod.default?.render;
-  const site: { routes?: Record<string, { file: string; locale?: string }>; meta?: Record<string, { toc?: TocItem[]; frontmatter?: Record<string, unknown> }> } | undefined = serverMod.site ?? serverMod.default?.site;
+  const site: { routes?: Record<string, { file: string; locale?: string; key?: string; alternates?: Record<string, string> }>; meta?: Record<string, { toc?: TocItem[]; frontmatter?: Record<string, unknown> }> } | undefined = serverMod.site ?? serverMod.default?.site;
   const fileOf = (routeId: string): string => site?.routes?.[routeId]?.file ?? routeId;
   const canonicalHostname: string | undefined = config.sitemap === false ? undefined : config.sitemap.hostname;
+  // DM-911: hreflang cần URL tuyệt đối. Thiếu hostname ⇒ cảnh báo MỘT lần, không fail build.
+  const hasTranslations = Object.values(site?.routes ?? {}).some((r) => Object.keys(r.alternates ?? {}).length > 1);
+  if (!canonicalHostname && hasTranslations) {
+    log.warn('i18n: có nhiều locale nhưng thiếu sitemap.hostname — bỏ qua hreflang alternates (cần URL tuyệt đối)');
+  }
+  let warnedTemplateHreflang = false;
   const escapeAttr = (s: string) => s.replace(/"/g, '&quot;');
   // `<html lang>` theo locale của route (template tĩnh luôn là lang mặc định) — WCAG 3.1.1.
   const defaultLang =
@@ -205,6 +211,25 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
       const href = canonicalUrl(canonicalHostname, config.base, routePath);
       if (!/<link[^>]+rel=["']canonical["']/i.test(out)) {
         out = out.replace(/<\/head>/i, `  <link rel="canonical" href="${escapeAttr(href)}">\n</head>`);
+      }
+    }
+    // DM-911: hreflang cho mọi bản dịch cùng key + x-default trỏ locale đầu tiên (chỉ khi có hostname).
+    const alts = routeId ? site?.routes?.[routeId]?.alternates : undefined;
+    if (canonicalHostname && routePath !== '/404' && alts && Object.keys(alts).length >= 2) {
+      if (/<link[^>]+rel=["']alternate["'][^>]*hreflang=/i.test(out)) {
+        if (!warnedTemplateHreflang) {
+          warnedTemplateHreflang = true;
+          log.warn('i18n_duplicate_hreflang_in_template: index.html đã có <link rel="alternate" hreflang> — không chèn thêm');
+        }
+      } else {
+        const links = config.locales
+          .filter((l) => alts[l.id])
+          .map((l) => `  <link rel="alternate" hreflang="${escapeAttr(l.id)}" href="${escapeAttr(canonicalUrl(canonicalHostname, config.base, alts[l.id]!))}">`);
+        const def = config.locales[0];
+        if (def && alts[def.id]) {
+          links.push(`  <link rel="alternate" hreflang="x-default" href="${escapeAttr(canonicalUrl(canonicalHostname, config.base, alts[def.id]!))}">`);
+        }
+        out = out.replace(/<\/head>/i, `${links.join('\n')}\n</head>`);
       }
     }
     return out;
