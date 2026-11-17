@@ -96,6 +96,64 @@ Flags: `--base`, `--outDir`, `--no-cache`, `--no-link-check`, `--config <path>`.
 - Link checking
 - Content-hash build cache
 
+## Đa ngôn ngữ (i18n)
+
+`locales` chọn **base mode** hoặc **suffix mode** (không trộn):
+
+```ts
+// base mode — mỗi locale một prefix path
+locales: [
+  { id: 'en-US', name: 'English' },          // base '/', suffix ''
+  { id: 'vi-VN', name: 'Tiếng Việt', base: '/vi-VN/' },
+]
+
+// suffix mode — mỗi locale không-default thêm hậu tố vào slug
+locales: [
+  { id: 'en-US', name: 'English', suffix: '' },
+  { id: 'vi-VN', name: 'Tiếng Việt', suffix: '.vi-VN' },
+]
+```
+
+Quy tắc file dịch: đặt `<tên>.<localeId>.md` cạnh file gốc (`getStarted.vi-VN.md` cạnh `getStarted.md`). File không có hậu tố là bản mặc định.
+
+### hreflang & sitemap
+
+Cần `sitemap.hostname` để build có thể viết `<link rel="alternate" hreflang="…">` và `x-default` (URL tuyệt đối):
+
+```ts
+sitemap: { hostname: 'https://docs.example.com' },
+```
+
+Sitemap sinh thêm `<xhtml:link rel="alternate" …>` cho mọi trang có nhiều bản dịch; trang chỉ có 1 ngôn ngữ giữ nguyên XML cũ.
+
+### Translations of UI strings
+
+Cấu hình theme `locales/<localeId>.json` (mảng nested objects không cần, key phẳng: `search.placeholder`, `search.count`, `locale.switch`, `skipToContent`, `colorSwitch.*`).
+
+Ưu tiên: `dommief-theme-default/locales/*.json` < theme package đang dùng < `.dommief/theme/locales/<id>.json` (cục bộ, thắng mọi thứ). Thiếu key ở một locale thì rơi về `en-US`, không hiển thị key thô. `.dommief/theme/locales/vi-VN.json` chỉ cần đặt key muốn đổi.
+
+### Language switcher
+
+Navbar tự hiện link sang bản dịch của trang (nếu có), ngược lại link về trang chủ của locale đó; site 1 locale không render gì. Override bằng `.dommief/theme/slots/LangSwitch.tsx`.
+
+### Parity giữa các ngôn ngữ
+
+```ts
+i18n: {
+  requireParity: true,          // build throw code i18n_parity khi thiếu bản dịch
+  allowSingleLocale: ['/reference/**'],  // key cố ý chỉ một locale (API ref…)
+},
+```
+
+Mặc định chỉ cảnh báo (gom nhóm: `Missing translations for N keys`). Trang thiếu bản dịch → route đó không được tạo, không có nội dung fallback.
+
+### Giới hạn v0.2
+
+- Không tự redirect theo `Accept-Language`.
+- Slug không dịch (chỉ nội dung).
+- Không pluralization (chỉ `{n}`).
+- Google Fonts: chỉ dùng subset nếu riêng theme chọn.
+
 ## Theme override
 
 Create `.dommief/theme/slots/<Name>/index.tsx` or `.dommief/theme/layouts/<Name>.tsx` to override default theme components.
