@@ -9,5 +9,6 @@
   "search.error": "Không tìm được — thử lại sau",
   "colorSwitch.auto": "Đổi giao diện sáng/tối",
   "colorSwitch.toLight": "Chuyển sang giao diện sáng",
-  "colorSwitch.toDark": "Chuyển sang giao diện tối"
+  "colorSwitch.toDark": "Chuyển sang giao diện tối",
+  "locale.switch": "Ngôn ngữ"
 }

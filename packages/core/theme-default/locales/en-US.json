@@ -9,5 +9,6 @@
   "search.error": "Search failed — try again later",
   "colorSwitch.auto": "Toggle light/dark theme",
   "colorSwitch.toLight": "Switch to light theme",
-  "colorSwitch.toDark": "Switch to dark theme"
+  "colorSwitch.toDark": "Switch to dark theme",
+  "locale.switch": "Language"
 }

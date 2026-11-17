@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router';
 import { useNavData, useSiteData } from 'dommief/theme-api';
 import ColorSwitch from 'dommief/theme/slots/ColorSwitch';
 import SearchBox from 'dommief/theme/slots/SearchBox';
+import LangSwitch from 'dommief/theme/slots/LangSwitch';
 import styles from '../styles/layout.module.css';
 
 // THEME-API §5 bảng slot: ColorSwitch render trong Navbar khi `themeConfig.prefersColor.switch
@@ -27,6 +28,7 @@ export function Navbar() {
         );
       })}
       <SearchBox />
+      <LangSwitch />
       {showColorSwitch ? <ColorSwitch /> : null}
     </nav>
   );

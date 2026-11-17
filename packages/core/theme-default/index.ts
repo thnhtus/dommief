@@ -7,6 +7,7 @@ export { default as NotFound404 } from './slots/NotFound.js';
 export { default as NotFound } from './slots/NotFound.js';
 export { default as ColorSwitch } from './slots/ColorSwitch.js';
 export { default as SearchBox } from './slots/SearchBox.js';
+export { default as LangSwitch } from './slots/LangSwitch.js';
 export { GlobalLayout } from './layouts/GlobalLayout.js';
 export { DocLayout } from './layouts/DocLayout.js';
 export { DemoLayout } from './layouts/DemoLayout.js';
