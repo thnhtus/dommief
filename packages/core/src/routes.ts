@@ -173,7 +173,18 @@ export function normalizeRoutes(raw: Route[], { cwd, config }: { cwd: string; co
   if (errors.length) {
     throw new DommiefError(errors.map((e) => e.message).join('\n\n'), { code: errors[0]!.code });
   }
+  applyAlternates(items);
   return { routes: items.map((it) => it.route), warnings };
+}
+
+/** DM-910: key = routePath (đã bỏ hậu tố/base); gom alternates theo key. Trùng (key, locale) ⇒ trùng path, đã bị `route_duplicate` chặn ở trên. */
+function applyAlternates(items: Normalized[]): void {
+  const groups = new Map<string, Normalized[]>();
+  for (const it of items) groups.set(it.routePath, [...(groups.get(it.routePath) ?? []), it]);
+  for (const [key, group] of groups) {
+    const alternates = Object.fromEntries(group.map((g) => [g.locale.id, g.route.path]));
+    for (const g of group) { g.route.key = key; g.route.alternates = alternates; }
+  }
 }
 
 function duplicateCause(a: Normalized, b: Normalized): string {
@@ -221,12 +232,14 @@ export function buildRouteTable({ cwd, config, hooks, plugins }: { cwd: string; 
     byId: {},
     byPath: {},
     byFile: {},
+    byKey: {},
     configHash: routeConfigHash(config),
   };
   for (const r of routes) {
     table.byId[r.id] = r;
     table.byPath[r.path] = r;
     table.byFile[r.file] = r;
+    if (r.key !== undefined) (table.byKey[r.key] ??= {})[r.locale ?? config.locales[0]!.id] = r;
   }
   return table;
 }
