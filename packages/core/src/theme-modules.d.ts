@@ -42,6 +42,10 @@ declare module 'dommief/theme/slots/SearchBox' {
   const Component: any;
   export default Component;
 }
+declare module 'dommief/theme/slots/LangSwitch' {
+  const Component: any;
+  export default Component;
+}
 declare module 'dommief/theme/slots/Api' {
   const Component: any;
   export default Component;

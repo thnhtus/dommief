@@ -5,6 +5,7 @@ import { build } from 'vite';
 import { dommiefPlugin } from './vite/plugin.js';
 import { resolveClientFile } from './paths.js';
 import { formatError, DommiefError } from './markdown/errors.js';
+import { buildRouteTable } from './routes.js';
 import type { ResolvedConfig } from './config.js';
 import type { PluginHookHost } from './plugins.js';
 import type { Logger } from './log.js';
@@ -57,6 +58,8 @@ export interface EmitContext {
   outDir: string;
   routes: Route[];
   log: Logger;
+  /** DM-912: locales cần cho alternates trong sitemap xhtml:link + DM-916 parity warning. */
+  locales: ResolvedConfig['locales'];
 }
 
 /** Bước phát thêm file vào `outDir` sau SSG. Thêm tính năng = thêm một emitter, không sửa `runBuild`. */
@@ -68,8 +71,8 @@ export const emitters: Emitter[] = [];
 // DM-708: sitemap/robots phát sau khi SSG ghi HTML (dùng danh sách routes đã prerender).
 emitters.push({
   name: 'sitemap',
-  run: ({ config, outDir, routes, log }) => {
-    writeSitemapAndRobots({ outDir, routes, sitemap: config.sitemap, robots: config.robots, base: config.base, log });
+  run: ({ config, outDir, routes, log, locales }) => {
+    writeSitemapAndRobots({ outDir, routes, sitemap: config.sitemap, robots: config.robots, base: config.base, locales, log });
   },
 });
 
@@ -149,6 +152,15 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   const plugins = () => [dommiefPlugin({ root, config, host, cache, collectTexts: (file, texts) => textsByFile.set(file, texts) })];
   const distDir = path.resolve(root, config.outDir);
 
+  // DM-916: `requireParity` ép đủ bản dịch — fail TRƯỚC khi tốn thời gian build client/SSR.
+  // Cảnh báo thường (không ép) đi qua `log.warn` ở đây để người dùng thấy ngay khi build.
+  if (config.locales.length > 1) {
+    const table = buildRouteTable({ cwd: root, config, hooks: host });
+    const warning = table.warnings.find((w) => w.startsWith('Missing translations for '));
+    if (warning && config.i18n.requireParity) throw new DommiefError(warning, { code: 'i18n_parity' });
+    if (warning) log.warn(warning);
+  }
+
   // (a) client build → outDir/
   await timed('client', () => build({ root, plugins: plugins(), base: config.base, build: { outDir: distDir, emptyOutDir: true } }));
 
@@ -189,9 +201,15 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
   // nằm ở `site.routes[r.id].file` (sinh bởi siteModule.ts, đầy đủ kiểu `Route`).
   const routes: Route[] = serverMod.routes ?? serverMod.default?.routes ?? [];
   const render: (url: string) => Promise<string> = serverMod.render ?? serverMod.default?.render;
-  const site: { routes?: Record<string, { file: string; locale?: string }>; meta?: Record<string, { toc?: TocItem[]; frontmatter?: Record<string, unknown> }> } | undefined = serverMod.site ?? serverMod.default?.site;
+  const site: { routes?: Record<string, { file: string; locale?: string; key?: string; alternates?: Record<string, string> }>; meta?: Record<string, { toc?: TocItem[]; frontmatter?: Record<string, unknown> }> } | undefined = serverMod.site ?? serverMod.default?.site;
   const fileOf = (routeId: string): string => site?.routes?.[routeId]?.file ?? routeId;
   const canonicalHostname: string | undefined = config.sitemap === false ? undefined : config.sitemap.hostname;
+  // DM-911: hreflang cần URL tuyệt đối. Thiếu hostname ⇒ cảnh báo MỘT lần, không fail build.
+  const hasTranslations = Object.values(site?.routes ?? {}).some((r) => Object.keys(r.alternates ?? {}).length > 1);
+  if (!canonicalHostname && hasTranslations) {
+    log.warn('i18n: có nhiều locale nhưng thiếu sitemap.hostname — bỏ qua hreflang alternates (cần URL tuyệt đối)');
+  }
+  let warnedTemplateHreflang = false;
   const escapeAttr = (s: string) => s.replace(/"/g, '&quot;');
   // `<html lang>` theo locale của route (template tĩnh luôn là lang mặc định) — WCAG 3.1.1.
   const defaultLang =
@@ -205,6 +223,25 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
       const href = canonicalUrl(canonicalHostname, config.base, routePath);
       if (!/<link[^>]+rel=["']canonical["']/i.test(out)) {
         out = out.replace(/<\/head>/i, `  <link rel="canonical" href="${escapeAttr(href)}">\n</head>`);
+      }
+    }
+    // DM-911: hreflang cho mọi bản dịch cùng key + x-default trỏ locale đầu tiên (chỉ khi có hostname).
+    const alts = routeId ? site?.routes?.[routeId]?.alternates : undefined;
+    if (canonicalHostname && routePath !== '/404' && alts && Object.keys(alts).length >= 2) {
+      if (/<link[^>]+rel=["']alternate["'][^>]*hreflang=/i.test(out)) {
+        if (!warnedTemplateHreflang) {
+          warnedTemplateHreflang = true;
+          log.warn('i18n_duplicate_hreflang_in_template: index.html đã có <link rel="alternate" hreflang> — không chèn thêm');
+        }
+      } else {
+        const links = config.locales
+          .filter((l) => alts[l.id])
+          .map((l) => `  <link rel="alternate" hreflang="${escapeAttr(l.id)}" href="${escapeAttr(canonicalUrl(canonicalHostname, config.base, alts[l.id]!))}">`);
+        const def = config.locales[0];
+        if (def && alts[def.id]) {
+          links.push(`  <link rel="alternate" hreflang="x-default" href="${escapeAttr(canonicalUrl(canonicalHostname, config.base, alts[def.id]!))}">`);
+        }
+        out = out.replace(/<\/head>/i, `${links.join('\n')}\n</head>`);
       }
     }
     return out;
@@ -249,11 +286,17 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     });
   }
 
+  // DM-917: `plan.prerender` đến từ RouteModule[] của SSR bundle (chỉ id/path) — thiếu
+  // `locale`/`alternates`. Ghép lại Route đầy đủ từ site module cho MỌI emitter (search index
+  // theo locale + sitemap xhtml:link). Trước đây search index gom hết vào locale đầu tiên.
+  const emitRoutes: Route[] = plan.prerender.map((r) => ({ ...r, ...(site?.routes?.[r.id] as Partial<Route> | undefined) }));
+
   if (config.search.enabled) {
     await timed('search-index', async () => {
       const { buildSearchIndex, INDEX_BUDGET_BYTES_PER_PAGE } = await import('./search.js');
       const res = await buildSearchIndex({
-        routes: plan.prerender,
+        // RouteModule (SSR) không có `locale` → lấy Route đầy đủ từ site.routes, nếu không mọi trang rơi vào locale mặc định (DM-917).
+        routes: emitRoutes,
         loadPageMeta: (r) => ({
           frontmatter: site?.meta?.[r.id]?.frontmatter ?? {},
           toc: site?.meta?.[r.id]?.toc ?? [],
@@ -277,7 +320,7 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     });
   }
 
-  for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes: plan.prerender, log }); });
+  for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes: emitRoutes, locales: config.locales, log }); });
   await timed('plugins', () => host.runBuildEnd({ config, outDir: distDir, routes }));
 
   cache.finish();

@@ -3,6 +3,10 @@ export interface Route {
   path: string;
   file: string;
   locale?: string;
+  /** DM-910: locale-neutral path (root = `''`). Tính từ `routePath` sau khi bỏ hậu tố/base; `index.md` và `README.md` cùng key `''`. */
+  key?: string;
+  /** DM-910: localeId → path của mọi bản thuộc cùng key (kể cả chính nó). Route 1 bản: 1 entry. */
+  alternates?: Record<string, string>;
   parentId?: string;
   tab?: string;
 }
@@ -50,6 +54,8 @@ export interface SiteData {
   sidebar: Record<string, SidebarGroup[]>;
   /** DM-803: theme ẩn ô tìm kiếm khi `false`. Optional để site data cũ/tay vẫn hợp lệ (mặc định bật). */
   search?: { enabled: boolean };
+  /** DM-913: messages per locale (theme-default en-US + vi-VN). Optional — các theme khác có thể không dùng. */
+  messages?: Record<string, Record<string, string>>;
 }
 
 /** Phần config mà tầng route cần — ResolvedConfig (DM-201) thoả cấu trúc này. */
@@ -67,5 +73,7 @@ export interface RouteTable {
   byId: Record<string, Route>;
   byPath: Record<string, Route>;
   byFile: Record<string, Route>;
+  /** DM-910: key → localeId → Route. key = locale-neutral path, root = `''`. */
+  byKey: Record<string, Record<string, Route>>;
   configHash: string;
 }

@@ -28,6 +28,6 @@ describe('override SearchBox qua .dommief/theme (DM-511 + DM-803)', () => {
     const html = s.read('index.html');
     expect(html).toContain('aria-label="Main"');
     expect(html).toContain('aria-label="Sidebar"');
-    expect(html).toContain('aria-label="Đổi giao diện sáng/tối"');
+    expect(html).toContain('aria-label="Toggle light/dark theme"'); // DM-913: locale mặc định en-US
   });
 });

@@ -22,7 +22,7 @@ export function createSite(name: string, opts: { config?: string } = {}) {
     dir,
     dist,
     read: (rel: string) => fs.readFileSync(path.join(dist, rel), 'utf8'),
-    build: () => execFileSync('node', [path.join(repo, 'packages/core/dist/cli.js'), 'build'], { cwd: dir, stdio: 'pipe' }),
+    build: (): string => execFileSync('node', [path.join(repo, 'packages/core/dist/cli.js'), 'build'], { cwd: dir, stdio: 'pipe' }).toString(),
     cleanup: () => fs.rmSync(dir, { recursive: true, force: true }),
   };
 }

@@ -10,14 +10,14 @@ for (const width of [320, 412]) {
       await page.goto(url);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, url).toBeLessThanOrEqual(0);
-      await expect(page.getByRole('button', { name: /giao diện/ })).toBeInViewport({ ratio: 1 });
+      await expect(page.getByTestId('color-switch')).toBeInViewport({ ratio: 1 });
     }
   });
 }
 
 test('search + đổi giao diện dùng được trên mobile', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('combobox', { name: 'Tìm kiếm' }).fill('Unique-marker');
+  await page.getByRole('combobox', { name: 'Search' }).fill('Unique-marker');
   await expect(page.getByRole('option').first()).toBeVisible();
   await page.getByRole('option').first().tap();
   await expect(page).toHaveURL(/\/guide\/get-started/);

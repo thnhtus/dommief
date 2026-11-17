@@ -82,3 +82,38 @@ describe('sitemap build integration (DM-708)', () => {
     s.cleanup();
   });
 });
+
+// DM-912: sitemap xhtml:link alternates
+const xhtmlLinks = (xml: string) => [...xml.matchAll(/<xhtml:link rel="alternate" hreflang="([^"]+)" href="([^"]+)"\/>/g)].map((m) => [m[1], m[2]]);
+
+describe('sitemap xhtml:link alternates (DM-912)', () => {
+  it('xhtml namespace + alternates cho route có >=2 locale; byte-identical khi 1 locale', () => {
+    const baseRoutes: any[] = [{ path: '/' }, { path: '/guide/get-started' }];
+    const twoLocaleRoutes = baseRoutes.map((r) => ({ ...r, alternates: { 'en-US': r.path, 'vi-VN': '/vi-VN' + r.path } }));
+    const xml = buildSitemap(twoLocaleRoutes, { hostname: 'https://site.com', exclude: [] }, '/', [{ id: 'en-US' }, { id: 'vi-VN' }]);
+    expect(xml).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
+    expect(xhtmlLinks(xml)).toEqual([
+      ['en-US', 'https://site.com/'],
+      ['vi-VN', 'https://site.com/vi-VN/'],
+      ['x-default', 'https://site.com/'],
+      ['en-US', 'https://site.com/guide/get-started'],
+      ['vi-VN', 'https://site.com/vi-VN/guide/get-started'],
+      ['x-default', 'https://site.com/guide/get-started'],
+    ]);
+    // 1 locale -> output giống hệt cũ (không có xmlns:xhtml, không có alternates)
+    const xmlSingle = buildSitemap(baseRoutes, { hostname: 'https://site.com', exclude: [] }, '/', [{ id: 'en-US' }]);
+    const xmlOld = buildSitemap(baseRoutes, { hostname: 'https://site.com', exclude: [] }, '/');
+    expect(xmlSingle).toBe(xmlOld);
+  });
+
+  it('route bị sitemap.exclude loại bỏ <url>, không ảnh hưởng alternates của route khác', () => {
+    const routes: any[] = [
+      { path: '/', alternates: { 'en-US': '/', 'vi-VN': '/vi-VN' } },
+      { path: '/draft', alternates: { 'en-US': '/draft', 'vi-VN': '/vi-VN/draft' } },
+      { path: '/guide', alternates: { 'en-US': '/guide', 'vi-VN': '/vi-VN/guide' } },
+    ];
+    const xml = buildSitemap(routes, { hostname: 'https://site.com', exclude: ['/draft'] }, '/', [{ id: 'en-US' }, { id: 'vi-VN' }]);
+    expect(xml).not.toContain('/draft');
+    expect(xhtmlLinks(xml).length).toBe(6); // 2 url * (2 locale + x-default)
+  });
+});

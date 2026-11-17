@@ -50,8 +50,10 @@ function LocationSpy({ onChange }: { onChange: (path: string) => void }) {
   return null;
 }
 
-interface Site { base: string; title: string; locales: unknown[]; themeConfig: object; routes: object; meta: object; nav: object; sidebar: object; search?: { enabled: boolean } }
-const defaultSite: Site = { base: '/', title: 't', locales: [{ id: 'en-US', name: 'en', base: '/', suffix: '' }], themeConfig: {}, routes: {}, meta: {}, nav: {}, sidebar: {} };
+interface Site { base: string; title: string; locales: unknown[]; themeConfig: object; routes: object; meta: object; nav: object; sidebar: object; search?: { enabled: boolean }; messages?: object }
+// DM-913: chuỗi UI lấy từ theme-default/locales — test chạy với bản vi-VN để giữ nguyên assertion.
+const viMessages = (await import('../packages/core/theme-default/locales/vi-VN.json', { with: { type: 'json' } })).default;
+const defaultSite: Site = { base: '/', title: 't', locales: [{ id: 'vi-VN', name: 'vi', base: '/', suffix: '' }], themeConfig: {}, routes: {}, meta: {}, nav: {}, sidebar: {}, messages: { 'vi-VN': viMessages } };
 
 function renderSearchBox(runtime: SearchRuntime, site: Site = defaultSite) {
   const paths: string[] = [];

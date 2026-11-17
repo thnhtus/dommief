@@ -85,6 +85,7 @@ describe('hydrate ssr — với theme layout đầy đủ + dữ liệu site', (
     const { SiteProvider } = await import('../packages/core/src/theme-api.tsx');
     const site: any = {
       base: '/', title: 't', locales: [{ id: 'en-US', name: 'English', base: '/', suffix: '' }], themeConfig: {},
+      messages: { 'en-US': { 'colorSwitch.auto': 'Toggle light/dark theme' } },
       routes: { 'guide/intro': { id: 'guide/intro', path: '/guide/intro', file: '/x.md' } },
       meta: { 'guide/intro': { frontmatter: {}, toc: [{ id: 'a', depth: 1, title: 'Alpha' }] } },
       nav: { 'en-US': [{ title: 'Intro', link: '/guide/intro', order: 0, activePath: '/guide/intro' }] },
@@ -97,7 +98,7 @@ describe('hydrate ssr — với theme layout đầy đủ + dữ liệu site', (
       const html = renderToString(<SiteProvider value={site}><StaticRouter location={location}><AppRoutes /></StaticRouter></SiteProvider>);
       expect(html).toContain('aria-label="Main"');
       expect(html, location).toContain('id="main"'); // skip-link luôn có đích, kể cả trang 404
-      expect(html).toContain('aria-label="Đổi giao diện sáng/tối"'); // ColorSwitch: nhãn trung tính ở render đầu
+      expect(html).toContain('aria-label="Toggle light/dark theme"'); // ColorSwitch: nhãn trung tính ở render đầu
       const container = document.createElement('div');
       container.appendChild(document.createRange().createContextualFragment(html));
       document.body.appendChild(container);

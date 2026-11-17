@@ -5,6 +5,7 @@ import { DommiefError } from './markdown/errors.js';
 import { winPath } from './utils/path.js';
 import type { ResolvedLocale, Route, RouteConfig, RouteTable } from './types.js';
 import { createPluginHost, type PluginHookHost } from './plugins.js';
+import { findParityIssues, formatParityWarning } from './i18n-parity.js';
 
 // Đặc tả: docs/spec/ROUTING.md §1–§5. Thứ tự bắt buộc trong normalizeRoutes:
 // locale → index/README → '.'→'/' → kebab → validate → trùng id/path.
@@ -173,7 +174,18 @@ export function normalizeRoutes(raw: Route[], { cwd, config }: { cwd: string; co
   if (errors.length) {
     throw new DommiefError(errors.map((e) => e.message).join('\n\n'), { code: errors[0]!.code });
   }
+  applyAlternates(items);
   return { routes: items.map((it) => it.route), warnings };
+}
+
+/** DM-910: key = routePath (đã bỏ hậu tố/base); gom alternates theo key. Trùng (key, locale) ⇒ trùng path, đã bị `route_duplicate` chặn ở trên. */
+function applyAlternates(items: Normalized[]): void {
+  const groups = new Map<string, Normalized[]>();
+  for (const it of items) groups.set(it.routePath, [...(groups.get(it.routePath) ?? []), it]);
+  for (const [key, group] of groups) {
+    const alternates = Object.fromEntries(group.map((g) => [g.locale.id, g.route.path]));
+    for (const g of group) { g.route.key = key; g.route.alternates = alternates; }
+  }
 }
 
 function duplicateCause(a: Normalized, b: Normalized): string {
@@ -221,12 +233,20 @@ export function buildRouteTable({ cwd, config, hooks, plugins }: { cwd: string; 
     byId: {},
     byPath: {},
     byFile: {},
+    byKey: {},
     configHash: routeConfigHash(config),
   };
+  const localeIds = config.locales.map((l) => l.id);
   for (const r of routes) {
     table.byId[r.id] = r;
     table.byPath[r.path] = r;
     table.byFile[r.file] = r;
+    if (r.key !== undefined) (table.byKey[r.key] ??= {})[r.locale ?? localeIds[0]!] = r;
   }
+  // DM-916: cảnh báo thiếu bản dịch (site ≥2 locale). `allowSingleLocale` trên config (routes.ts
+  // chỉ nhận `RouteConfig` — đọc qua `(config as any).i18n?.allowSingleLocale` nếu có).
+  const allowSingle = ((config as any).i18n?.allowSingleLocale as string[] | undefined) ?? [];
+  const parityWarning = formatParityWarning(findParityIssues(table, localeIds, allowSingle));
+  if (parityWarning) table.warnings.push(parityWarning);
   return table;
 }

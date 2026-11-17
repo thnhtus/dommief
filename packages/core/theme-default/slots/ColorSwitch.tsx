@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePrefersColor } from 'dommief/theme-api';
+import { usePrefersColor, useT } from 'dommief/theme-api';
 import styles from '../styles/layout.module.css';
 
 // THEME-API §7.6: `color`/`prefers` là `undefined` ở SSR + render đầu — PHẢI render icon
@@ -7,10 +7,12 @@ import styles from '../styles/layout.module.css';
 // hydration mismatch). Nhãn thật chỉ xuất hiện sau khi client đã đọc được localStorage/OS.
 export function ColorSwitch() {
   const [color, , setPrefers] = usePrefersColor();
-  const label = color === undefined ? 'Đổi giao diện sáng/tối' : color === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối';
+  const t = useT();
+  const label = color === undefined ? t('colorSwitch.auto') : color === 'dark' ? t('colorSwitch.toLight') : t('colorSwitch.toDark');
   return (
     <button
       type="button"
+      data-testid="color-switch"
       className={styles.colorSwitch!}
       aria-label={label}
       onClick={() => setPrefers(color === 'dark' ? 'light' : 'dark')}

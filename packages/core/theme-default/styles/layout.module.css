@@ -36,3 +36,8 @@
 .notFound p { margin: 0; color: var(--dm-c-text-secondary); font-family: var(--dm-font-mono); font-size: 0.875rem; overflow-wrap: anywhere; }
 .notFound__home { display: inline-flex; align-items: center; min-height: 36px; margin-top: var(--dm-space-2); padding: 0 var(--dm-space-4); border-radius: var(--dm-radius-sm); background: var(--dm-c-text); color: var(--dm-c-bg); font-size: 0.875rem; font-weight: 500; }
 .notFound__home:hover { text-decoration: none; opacity: 0.9; }
+
+.langSwitch { display: flex; align-items: center; gap: var(--dm-space-2); }
+.langSwitch a { display: inline-flex; align-items: center; min-height: 32px; padding: var(--dm-space-1) var(--dm-space-3); border-radius: var(--dm-radius-sm); font-size: 0.9rem; color: var(--dm-c-text-secondary); text-decoration: none; }
+.langSwitch a:hover { background: var(--dm-c-bg-subtle); color: var(--dm-c-text); }
+.langSwitch__active { color: var(--dm-c-text); font-weight: 600; }

@@ -1,9 +1,11 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { createSiteModule, type SiteModuleMeta } from '../siteModule.js';
 import { extractPageSummary } from '../markdown/remark-meta.js';
 import type { DommiefState } from './state.js';
+import { loadThemeChain, buildLocaleMessages } from '../theme/resolver.js';
 
 // Đặc tả: backlog DM-209. Plugin riêng `dommief:site` giữ `virtual:dommief/site` nhẹ.
 // Invalidate chỉ khi frontmatter của md đổi, md thêm/xoá/đổi tên, hoặc config đổi.
@@ -47,6 +49,8 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
       if (cache) return { code: cache, map: null };
       const config = state.config();
       const t = state.getTable();
+      // DM-913: messages merge local > pkg > default (fallback en-US cho key thiếu).
+      const messages = buildLocaleMessages(loadThemeChain(state.cwd, config), config.locales);
       // Một lần đọc file cho cả frontmatter lẫn toc (#12): không còn import `.md?meta` riêng
       // cho từng route, nên cả nav/sidebar lẫn `site.meta` đều ra từ cùng một parser.
       const summaries = new Map(t.routes.map((r) => {
@@ -66,6 +70,7 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
           themeConfig: config.themeConfig,
           frontmatter,
           search: { enabled: config.search.enabled },
+          messages,
         },
         meta,
       });
@@ -87,6 +92,8 @@ export function dommiefSitePlugin(state: DommiefState): Plugin {
       // trả undefined → Vite dùng hành vi mặc định (module trang vẫn HMR)
     },
     watchChange(id, { event }) {
+      // DM-913: sửa file locales/<id>.json trong .dommief/theme phải nạp lại site module.
+      if (id.includes(`${path.sep}.dommief${path.sep}theme${path.sep}locales${path.sep}`) && id.endsWith('.json')) { invalidate(); return; }
       if (!id.endsWith('.md')) return;
       if (event === 'create' || event === 'delete') {
         invalidate();
