@@ -285,11 +285,17 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     });
   }
 
+  // DM-917: `plan.prerender` đến từ RouteModule[] của SSR bundle (chỉ id/path) — thiếu
+  // `locale`/`alternates`. Ghép lại Route đầy đủ từ site module cho MỌI emitter (search index
+  // theo locale + sitemap xhtml:link). Trước đây search index gom hết vào locale đầu tiên.
+  const emitRoutes: Route[] = plan.prerender.map((r) => ({ ...r, ...(site?.routes?.[r.id] as Partial<Route> | undefined) }));
+
   if (config.search.enabled) {
     await timed('search-index', async () => {
       const { buildSearchIndex, INDEX_BUDGET_BYTES_PER_PAGE } = await import('./search.js');
       const res = await buildSearchIndex({
-        routes: plan.prerender,
+        // RouteModule (SSR) không có `locale` → lấy Route đầy đủ từ site.routes, nếu không mọi trang rơi vào locale mặc định (DM-917).
+        routes: emitRoutes,
         loadPageMeta: (r) => ({
           frontmatter: site?.meta?.[r.id]?.frontmatter ?? {},
           toc: site?.meta?.[r.id]?.toc ?? [],
@@ -313,7 +319,7 @@ export async function runBuild({ root, config, host, log }: BuildOptions): Promi
     });
   }
 
-  for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes: plan.prerender, locales: config.locales, log }); });
+  for (const e of emitters) await timed(e.name, async () => { await e.run({ root, config, outDir: distDir, routes: emitRoutes, locales: config.locales, log }); });
   await timed('plugins', () => host.runBuildEnd({ config, outDir: distDir, routes }));
 
   cache.finish();

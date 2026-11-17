@@ -7,14 +7,14 @@ test('chưa gõ thì không tải worker/index; gõ lần đầu mới lazy-load
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   expect(reqs.filter((u) => /search-index/.test(u))).toEqual([]);
-  await page.getByRole('combobox', { name: 'Tìm kiếm' }).fill('unique');
+  await page.getByRole('combobox', { name: 'Search' }).fill('unique');
   await expect(page.getByRole('listbox')).toBeVisible();
   expect(reqs.some((u) => /search-index/.test(u))).toBe(true);
 });
 
 test('tìm "marker" ra kết quả ở trang Get started, bấm vào điều hướng đúng', async ({ page }) => {
   await page.goto('/');
-  const box = page.getByRole('combobox', { name: 'Tìm kiếm' });
+  const box = page.getByRole('combobox', { name: 'Search' });
   await box.fill('Unique-marker');
   const option = page.getByRole('option').first();
   await expect(option).toBeVisible();
@@ -29,7 +29,7 @@ test('tìm "marker" ra kết quả ở trang Get started, bấm vào điều hư
 
 test('bàn phím: ArrowDown chọn, Enter điều hướng, Escape đóng', async ({ page }) => {
   await page.goto('/');
-  const box = page.getByRole('combobox', { name: 'Tìm kiếm' });
+  const box = page.getByRole('combobox', { name: 'Search' });
   await box.fill('Unique-marker');
   await expect(page.getByRole('listbox')).toBeVisible();
   await box.press('ArrowDown');
@@ -47,7 +47,7 @@ test('bàn phím: ArrowDown chọn, Enter điều hướng, Escape đóng', asyn
 
 test('không có kết quả: thông báo aria-live, không có listbox', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('combobox', { name: 'Tìm kiếm' }).fill('zzzzqqqqxxxx');
-  await expect(page.getByText('Không tìm thấy kết quả')).toBeVisible();
+  await page.getByRole('combobox', { name: 'Search' }).fill('zzzzqqqqxxxx');
+  await expect(page.getByText('No results found')).toBeVisible();
   await expect(page.getByRole('listbox')).toHaveCount(0);
 });

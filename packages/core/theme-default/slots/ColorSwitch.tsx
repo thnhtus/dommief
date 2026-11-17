@@ -12,6 +12,7 @@ export function ColorSwitch() {
   return (
     <button
       type="button"
+      data-testid="color-switch"
       className={styles.colorSwitch!}
       aria-label={label}
       onClick={() => setPrefers(color === 'dark' ? 'light' : 'dark')}

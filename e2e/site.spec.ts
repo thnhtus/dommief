@@ -85,14 +85,14 @@ test('đổi giao diện sáng/tối: set attribute, lưu localStorage, giữ sa
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/');
   const html = page.locator('html');
-  await page.getByRole('button', { name: /giao diện/ }).click();
+  await page.getByTestId('color-switch').click();
   await expect(html).toHaveAttribute('data-prefers-color', 'dark');
   expect(await page.evaluate(() => localStorage.getItem('dommief:prefers-color'))).toBe('dark');
   await page.reload();
   // Boot script chạy trước React mount => attribute có ngay khi DOM parse xong.
   await expect(html).toHaveAttribute('data-prefers-color', 'dark');
-  await expect(page.getByRole('button', { name: 'Chuyển sang giao diện sáng' })).toBeVisible();
-  await page.getByRole('button', { name: 'Chuyển sang giao diện sáng' }).click();
+  await expect(page.getByTestId('color-switch')).toHaveAttribute('aria-label', 'Switch to light theme');
+  await page.getByTestId('color-switch').click();
   await expect(html).toHaveAttribute('data-prefers-color', 'light');
 });
 

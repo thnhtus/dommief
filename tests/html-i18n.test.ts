@@ -37,6 +37,13 @@ describe('hreflang (DM-911)', () => {
     expect(hreflangs(withHost.read('only-en/index.html'))).toEqual([]);
   });
 
+  it('sitemap.xml khớp hreflang trong HTML (DM-912)', () => {
+    const xml = withHost.read('sitemap.xml');
+    expect(xml).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
+    expect(xml).toContain('<xhtml:link rel="alternate" hreflang="vi-VN" href="https://site.com/vi-VN/guide/get-started"/>');
+    expect(xml).toContain('<xhtml:link rel="alternate" hreflang="x-default" href="https://site.com/guide/get-started"/>');
+  });
+
   it('404 không phát hreflang', () => {
     expect(hreflangs(withHost.read('404.html'))).toEqual([]);
   });

@@ -17,7 +17,7 @@ test('trang chủ dưới /sub/: asset, link, điều hướng đều có base',
 
 test('search dưới /sub/ tải index đúng base', async ({ page }) => {
   await page.goto('/sub/');
-  await page.getByRole('combobox', { name: 'Tìm kiếm' }).fill('Unique-marker');
+  await page.getByRole('combobox', { name: 'Search' }).fill('Unique-marker');
   await expect(page.getByRole('option').first()).toBeVisible();
   await page.getByRole('option').first().click();
   await expect(page).toHaveURL(/\/sub\/guide\/get-started/);
