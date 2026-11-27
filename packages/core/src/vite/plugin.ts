@@ -12,6 +12,7 @@ import { createState } from './state.js';
 import { winPath } from '../utils/path.js';
 import { escapeXml } from '../sitemap.js';
 import { buildAliasChain } from '../theme/resolver.js';
+import { buildLibraryAlias } from '../library.js';
 import { computePipelineHash, computeRoutesHash, type TransformCache } from '../cache.js';
 // Import từ prefers-color.js (KHÔNG phải theme-api.js): file này chạy trong tiến trình
 // Node của CLI (build-time), không qua bundle SSR của Vite. Import trực tiếp theme-api.tsx
@@ -60,7 +61,7 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
   const markdownPlugin: Plugin = {
     name: 'dommief:markdown',
     enforce: 'pre',
-    async config(_, env) {
+    async config(userConfig, env) {
       isServe = env.command === 'serve';
       if (!loaded) {
         const config = await loadConfig(opts.root);
@@ -72,9 +73,11 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       // luôn chọn source), nếu không sẽ ra 2 module khác nhau → `SiteContext` khác nhau →
       // `useSiteData()`/`useNavData()` trong theme luôn rỗng (xem paths.ts).
       aliases['dommief/theme-api'] = resolveThemeApiFile();
+      // DM-924: alias `library.importName` (hoặc package.json#name) → `src/`, user alias thắng.
+      const libraryAlias = buildLibraryAlias(loaded.config);
       return {
         base: loaded.config.base,
-        resolve: { dedupe: ['react', 'react-dom', 'react-router'], alias: aliases },
+        resolve: { dedupe: ['react', 'react-dom', 'react-router'], alias: mergeLibraryAlias(userConfig.resolve?.alias, { ...aliases, ...libraryAlias }) },
         ssr: { noExternal: ['dommief'] },
         // Client dommief nằm trong node_modules nên Vite không quét dep → React CJS bị serve thô
         // ("does not provide an export named 'jsxDEV'").
@@ -114,7 +117,7 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
         const isMeta = id.endsWith('?meta');
         const file = isMeta ? id.slice(0, -'?meta'.length) : id;
         const code = await fs.promises.readFile(file, 'utf8');
-        const transformOpts = { hooks: state.host(), byFile: state.getTable().byFile, base: state.config().base, code: state.config().markdown };
+        const transformOpts = { hooks: state.host(), byFile: state.getTable().byFile, base: state.config().base, code: state.config().markdown, config: state.config() };
         let out: string; let meta: Awaited<ReturnType<typeof transformMarkdown>>['meta']; let warnings: string[]; let apiSrcFiles: string[] = [];
         if (opts.cache) {
           const host = state.host();
@@ -182,7 +185,9 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
       const localThemeDir = winPath(path.resolve(opts.root, '.dommief', 'theme')) + '/';
       const update = () => {
         const aliases = buildAliasChain(opts.root, loaded!.config);
-        server.config.resolve.alias = { ...(server.config.resolve.alias as any), ...aliases };
+        const merged = mergeLibraryAlias(server.config.resolve.alias, { ...aliases, ...buildLibraryAlias(loaded!.config) });
+        // Vite's AliasOptions accepts arrays or maps; normalize to its alias-array form here.
+        server.config.resolve.alias = Object.entries(merged).map(([find, replacement]) => ({ find, replacement }));
         server.ws.send({ type: 'full-reload' });
       };
       server.watcher.on('add', (f) => { if (winPath(f).startsWith(localThemeDir)) update(); });
@@ -190,4 +195,30 @@ export function dommiefPlugin(opts: DommiefPluginOptions) {
     },
   };
   return [markdownPlugin, dommiefRoutesPlugin(state), dommiefSitePlugin(state), dommiefSearchIndexPlugin(state)] as Plugin[];
+}
+
+export type LibraryAliasMap = Record<string, string>;
+
+export function mergeLibraryAlias(
+  userAlias: unknown,
+  libraryAlias: LibraryAliasMap | undefined | null,
+): LibraryAliasMap {
+  const out: LibraryAliasMap = {};
+  if (Array.isArray(userAlias)) {
+    for (const item of userAlias) {
+      if (item && typeof item === 'object' && typeof (item as { find?: unknown }).find === 'string' && typeof (item as { replacement?: unknown }).replacement === 'string') {
+        out[String((item as { find: string }).find)] = String((item as { replacement: string }).replacement);
+      }
+    }
+  } else if (userAlias && typeof userAlias === 'object') {
+    for (const [k, v] of Object.entries(userAlias as Record<string, unknown>)) {
+      if (typeof v === 'string') out[k] = v;
+    }
+  }
+  if (libraryAlias) {
+    for (const [k, v] of Object.entries(libraryAlias)) {
+      if (!(k in out)) out[k] = v;
+    }
+  }
+  return out;
 }
