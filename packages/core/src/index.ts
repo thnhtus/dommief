@@ -6,6 +6,8 @@ export { buildRouteTable } from './routes.js';
 export type { Route, RouteTable, RouteConfig, SiteData, ResolvedLocale } from './types.js';
 export { buildNav, buildSidebar, paginate, parseFrontmatter } from './siteFeatures.js';
 export type { FrontmatterMap, PaginationResult } from './siteFeatures.js';
+export { scanComponents, findComponentEntry, buildLibraryAlias } from './library.js';
+export type { ComponentInfo } from './library.js';
 export { transformMarkdown } from './markdown/index.js';
 export { rehypeApi, buildApiTable, clearApiCache, hashFileContent } from './markdown/rehype-api.js';
 export type { ApiEntry, ApiProp } from './markdown/rehype-api.js';

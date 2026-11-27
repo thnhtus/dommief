@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { defineConfig, loadConfigFile, resolveConfig, type UserConfig } from '../packages/core/src/config.ts';
 import { DommiefError } from '../packages/core/src/markdown/errors.ts';
 
@@ -95,5 +95,28 @@ describe('defineConfig types', () => {
     expect(defineConfig({ locales: [{ id: 'en-US', name: 'English', suffix: '' }] }).locales).toHaveLength(1);
     // @ts-expect-error id must be a string
     defineConfig({ locales: [{ id: 1 }] });
+  });
+});
+
+describe('library preset config (DM-921)', () => {
+  it('defaults library block khi không khai báo', () => {
+    expect(resolve({}).library).toEqual({ demoDir: 'demo', api: 'off' });
+  });
+
+  it('giữ giá trị library hợp lệ dưới preset library', () => {
+    const c = resolve({ preset: 'library', library: { demoDir: 'examples', importName: 'acme-ui', api: 'auto' } });
+    expect(c.preset).toBe('library');
+    expect(c.library).toEqual({ demoDir: 'examples', importName: 'acme-ui', api: 'auto' });
+  });
+
+  it('library.* dưới preset docs chỉ warning, không fail', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const c = resolve({ library: { api: 'auto' } });
+      expect(c.library.api).toBe('auto');
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('preset'));
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

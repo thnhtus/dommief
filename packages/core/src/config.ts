@@ -29,6 +29,11 @@ export const ConfigSchema = z
     srcDir: z.string().default('docs'),
     /** Khi `library`, tự động quét `src/` để hỗ trợ atom routing cho component library. */
     preset: z.enum(['docs', 'library']).default('docs'),
+    library: z.object({
+      demoDir: z.string().default('demo'),
+      importName: z.string().optional(),
+      api: z.enum(['off', 'auto']).default('off'),
+    }).default({ demoDir: 'demo', api: 'off' }),
     docDirs: z.array(z.union([z.string(), z.object({ dir: z.string() })])).optional(),
     forceKebabCase: z.boolean().default(true),
     locales: z.array(LocaleInputSchema).default([{ id: 'en-US', name: 'English' }]),
@@ -87,6 +92,8 @@ export interface ResolvedConfig extends RouteConfig {
   outDir: string;
   themeConfig: Record<string, unknown>;
   theme: string;
+  /** DM-921: block cấu hình cho preset `library` (manifest + auto API + alias). */
+  library: { demoDir: string; importName?: string | undefined; api: 'off' | 'auto' };
   ssg: { concurrency: number; exclude: string[]; noEmit: string[] };
   cache: boolean;
   linkCheck: boolean;
@@ -177,6 +184,9 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     fail(issue.path as (string | number)[], issue.message);
   }
   const c = parsed.data!;
+  if (c.preset === 'docs' && userConfig.library !== undefined) {
+    console.warn('library.* chỉ có hiệu lực khi preset là "library"; cấu hình sẽ được bỏ qua');
+  }
 
   const locales = resolveLocales(c.locales, fail);
   const config: ResolvedConfig = {
@@ -188,6 +198,7 @@ export function resolveConfig(userConfig: UserConfig, opts: ResolveOptions): Res
     docDirs: (c.docDirs ?? [c.srcDir]).map((d) => (typeof d === 'string' ? { dir: d } : { dir: d.dir })),
     forceKebabCase: c.forceKebabCase,
     preset: c.preset,
+    library: c.library,
     locales,
     themeConfig: c.themeConfig,
     theme: c.theme,
