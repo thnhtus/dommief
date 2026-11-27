@@ -1,5 +1,7 @@
 import { visit } from 'unist-util-visit';
 import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * remark: ```tsx demo → đánh dấu `data-demo` lên <code>. Phải làm ở remark vì `rehype-raw`
@@ -19,6 +21,26 @@ export interface DemoEntry {
   id: string;
   source: string;
   src?: string;
+  title?: string;
+}
+
+// Cache đọc source file: key `absPath:mtimeMs:size` (cùng kiểu cache docgen — không đọc lại mỗi transform).
+const srcCache = new Map<string, string>();
+
+function readDemoSrc(src: string, filePath: string): string | null {
+  const base = filePath ? path.dirname(filePath) : process.cwd();
+  const abs = path.isAbsolute(src) ? src : path.resolve(base, src);
+  try {
+    const st = fs.statSync(abs);
+    const key = `${abs}:${st.mtimeMs}:${st.size}`;
+    const cached = srcCache.get(key);
+    if (cached !== undefined) return cached;
+    const content = fs.readFileSync(abs, 'utf8');
+    srcCache.set(key, content);
+    return content;
+  } catch {
+    return null; // file thiếu hoặc không đọc được → caller warning, không fail build
+  }
 }
 
 function demoId(source: string, file: string): string {
@@ -31,9 +53,48 @@ function codeText(node: any): string {
   return out;
 }
 
+interface DomDemoElement {
+  type: 'element';
+  tagName: 'DomDemo';
+  properties: { id: string; src: string; source: string; title?: string };
+  children: never[];
+}
+
+function handleCodeSrc(
+  node: any,
+  filePath: string,
+  demos: DemoEntry[],
+  warnings: string[]
+): DomDemoElement {
+  const src = String(node.properties.src);
+  const title = node.properties.title ? String(node.properties.title) : undefined;
+  let source = codeText(node).trim();
+  if (!source) {
+    const fileContent = readDemoSrc(src, filePath);
+    if (fileContent === null) {
+      warnings.push(`demo_src_missing: "${src}" trong ${filePath} không tồn tại`);
+    } else {
+      source = fileContent.trim();
+    }
+  }
+  const id = demoId(source || src, filePath);
+  const entry: DemoEntry = { id, source, src };
+  if (title) entry.title = title;
+  demos.push(entry);
+  const props: DomDemoElement['properties'] = { id, src, source };
+  if (title) props.title = title;
+  return {
+    type: 'element',
+    tagName: 'DomDemo',
+    properties: props,
+    children: [],
+  };
+}
+
 export function rehypeDemo() {
   return (tree: any, file: any) => {
     const demos: DemoEntry[] = Array.isArray((file.data as any)?.demos) ? (file.data as any).demos : [];
+    const warnings: string[] = ((file.data as any) ??= {}).warnings ??= [];
     const filePath = String((file as any).path ?? '');
 
     visit(tree, 'element', (node: any, index: number | undefined, parent: any) => {
@@ -41,16 +102,7 @@ export function rehypeDemo() {
 
       // <code src="./Foo.tsx"> form
       if (node.tagName === 'code' && node.properties?.src) {
-        const src = String(node.properties.src);
-        const source = codeText(node).trim();
-        const id = demoId(source || src, filePath);
-        demos.push({ id, source, src });
-        parent.children[index] = {
-          type: 'element',
-          tagName: 'DomDemo',
-          properties: { id, src, source },
-          children: [],
-        };
+        parent.children[index] = handleCodeSrc(node, filePath, demos, warnings);
         return;
       }
 

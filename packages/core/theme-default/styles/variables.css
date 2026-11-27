@@ -114,6 +114,7 @@ img { max-width: 100%; height: auto; }
 
 /* Demo component (DM-702): card with separated toolbar + preview. */
 .dommief-demo { margin: var(--dm-space-4) 0; border: 1px solid var(--dm-c-border); border-radius: var(--dm-radius); overflow: hidden; background: var(--dm-c-bg); }
+.dommief-demo__title { margin: 0; padding: var(--dm-space-2) var(--dm-space-4); font-size: 0.9rem; font-weight: 600; border-bottom: 1px solid var(--dm-c-border-light); background: var(--dm-c-bg-subtle); color: var(--dm-c-text); }
 .dommief-demo__preview { display: flex; align-items: center; justify-content: center; padding: var(--dm-space-6); }
 .dommief-demo__code { margin: 0; padding: var(--dm-space-4); background: var(--dm-c-bg-code); border-top: 1px solid var(--dm-c-border-light); }
 .dommief-demo__toolbar { display: flex; gap: var(--dm-space-2); padding: var(--dm-space-2) var(--dm-space-3); border-top: 1px solid var(--dm-c-border-light); background: var(--dm-c-bg-subtle); }

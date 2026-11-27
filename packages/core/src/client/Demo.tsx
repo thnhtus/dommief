@@ -5,6 +5,7 @@ export interface DemoProps {
   id: string;
   source?: string;
   src?: string;
+  title?: string;
 }
 
 class DemoErrorBoundary extends Component<{ children: React.ReactNode; fallback: React.ReactNode }, { hasError: boolean }> {
@@ -21,7 +22,7 @@ class DemoErrorBoundary extends Component<{ children: React.ReactNode; fallback:
   }
 }
 
-export function DomDemo({ id, source }: DemoProps) {
+export function DomDemo({ id, source, title }: DemoProps) {
   const [showCode, setShowCode] = useState(false);
   const demo = getDemo(id);
 
@@ -33,6 +34,7 @@ export function DomDemo({ id, source }: DemoProps) {
 
   return (
     <div className="dommief-demo" data-demo-id={id}>
+      {title ? <h4 className="dommief-demo__title">{title}</h4> : null}
       <div className="dommief-demo__preview">
         {demo ? (
           <DemoErrorBoundary fallback={codeFallback}>

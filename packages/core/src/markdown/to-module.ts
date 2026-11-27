@@ -1,15 +1,31 @@
 import { toEstree } from 'hast-util-to-estree';
 import { toJs, jsx } from 'estree-util-to-js';
+import { visit } from 'unist-util-visit';
 
 /** Specifier mà plugin `dommief:markdown` resolve về `client/index.tsx` của package. */
 export const CLIENT_MODULE = 'dommief/client';
 
 export interface ModuleImage { name: string; specifier: string }
 
-export function toModule(hast: any, meta: { frontmatter: unknown; toc: unknown; texts?: unknown }, images: ModuleImage[] = [], demos: { id: string; source: string; src?: string }[] = []): string {
+/** `title` của `<code src title>` được rehypeDemo đưa vào `demos` — gắn lên element trước khi serialize. */
+function applyDemoTitles(hast: any, demos: { id: string; title?: string }[]): void {
+  const byId = new Map<string, string>();
+  for (const d of demos) if (d.title) byId.set(d.id, d.title);
+  if (!byId.size) return;
+  visit(hast, 'element', (node: any) => {
+    if (node.tagName !== 'DomDemo' && node.tagName !== 'DumiDemo') return;
+    const id = node.properties?.id;
+    if (id == null) return;
+    const title = byId.get(String(id));
+    if (title && node.properties.title == null) node.properties.title = title;
+  });
+}
+
+export function toModule(hast: any, meta: { frontmatter: unknown; toc: unknown; texts?: unknown }, images: ModuleImage[] = [], demos: { id: string; source: string; src?: string; title?: string }[] = []): string {
   // `texts` chỉ dùng để build search index lúc build (buildSearchIndex nhận trực tiếp PageMeta từ
   // transformMarkdown, không đọc export này) — bỏ khỏi bundle gửi cho trình duyệt (#20).
   const { texts: _texts, ...clientMeta } = meta;
+  applyDemoTitles(hast, demos);
   const estree = toEstree(hast, { elementAttributeNameCase: 'react' }) as any;
   const { value: code } = toJs(estree, { handlers: jsx });
   let body = code.replace(/;\s*$/, '').trim();
