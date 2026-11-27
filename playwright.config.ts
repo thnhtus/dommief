@@ -9,6 +9,7 @@ import { defineConfig, devices } from '@playwright/test';
 const CLI = '../../packages/core/dist/cli.js';
 const PORT = 4318;
 const PORT_SUB = 4319;
+const PORT_LIBRARY = 4320;
 const buildCore = 'pnpm -C ../../packages/core build';
 
 export default defineConfig({
@@ -21,7 +22,7 @@ export default defineConfig({
   projects: [
     {
       name: 'base-root',
-      testIgnore: /(base-sub|responsive)\.spec\.ts/,
+      testIgnore: /(base-sub|responsive|library)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${PORT}` },
     },
     {
@@ -34,19 +35,38 @@ export default defineConfig({
       testMatch: /responsive\.spec\.ts/,
       use: { ...devices['Pixel 7'], baseURL: `http://localhost:${PORT}` },
     },
+    {
+      name: 'library',
+      testMatch: /library\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${PORT_LIBRARY}` },
+    },
   ],
-  // MỘT tiến trình: build core/theme đúng 1 lần (tsup `clean: true` chạy song song sẽ xoá
-  // `dist/cli.js` của nhau — cùng race ENOENT đã gặp ở vitest), rồi chạy 2 preview song song.
-  webServer: {
-    command: [
-      `${buildCore}`,
-      `node ${CLI} build`,
-      `node ${CLI} build --base /sub/ --out-dir dist-sub`,
-      `(node ${CLI} preview --port ${PORT} & node ${CLI} preview --base /sub/ --out-dir dist-sub --port ${PORT_SUB} & wait)`,
-    ].join(' && '),
-    cwd: 'examples/docs',
-    url: `http://localhost:${PORT_SUB}/sub/`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-  },
+  // Build core/theme once, then run docs' two base previews plus an independent library preview.
+  webServer: [
+    {
+      command: [
+        `${buildCore}`,
+        `node ${CLI} build`,
+        `node ${CLI} build --base /sub/ --out-dir dist-sub`,
+        `(node ${CLI} preview --port ${PORT} & node ${CLI} preview --base /sub/ --out-dir dist-sub --port ${PORT_SUB} & wait)`,
+      ].join(' && '),
+      cwd: 'examples/docs',
+      url: `http://localhost:${PORT_SUB}/sub/`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
+    {
+      command: [
+        // Core build chạy trong webServer của examples/docs; chờ `dist/cli.js` xuất hiện thay vì
+        // build song song (tsup `clean: true` sẽ xoá dist của nhau).
+        `while [ ! -f ${CLI} ]; do sleep 1; done`,
+        `node ${CLI} build`,
+        `node ${CLI} preview --port ${PORT_LIBRARY}`,
+      ].join(' && '),
+      cwd: 'examples/library',
+      url: `http://localhost:${PORT_LIBRARY}/`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
+  ],
 });
