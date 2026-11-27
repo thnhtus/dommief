@@ -12,4 +12,5 @@
 | [`../agents/ProjectRules.md`](../agents/ProjectRules.md) | **adapter** — §1 nguồn sự thật · §2 guardrail · §3 nhánh · §7 lệnh (project tự viết, không dịch sẵn) |
 | [`agents/{Role}.md`](./agents/) | quy trình của từng role |
 | [`tasks/README.md`](./tasks/README.md) | bố cục task doc + template |
+| [`../library-preset.md`](../library-preset.md) | preset `library` (chỉ có bản tiếng Anh — chưa dịch) |
 | [`srs/`](./srs/README.md) · [`fsd/`](./fsd/README.md) · [`api/`](./api/README.md) | artifact tham chiếu của project (chỉ đọc, không sửa) |

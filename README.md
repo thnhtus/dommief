@@ -57,6 +57,9 @@ export default defineConfig({
 | outDir | 'dist' | Output directory |
 | srcDir | 'docs' | Source docs directory |
 | preset | 'docs' | 'docs' or 'library' (auto-scans src/) |
+| library.demoDir | 'demo' | Demo folder name inside a component dir (library preset only) |
+| library.api | 'off' | 'auto' injects the API table from the component entry (library preset only) |
+| library.importName | — | Package name to alias to `src/index.ts`, so demos import from the package name (library preset only) |
 | docDirs | — | Extra doc directories |
 | forceKebabCase | true | Force kebab-case routes |
 | locales | [{id:'en-US',name:'English'}] | i18n (base or suffix mode, mutually exclusive) |
@@ -86,8 +89,9 @@ Flags: `--base`, `--outDir`, `--no-cache`, `--no-link-check`, `--config <path>`.
 ## Features
 
 - Filesystem routing
-- Live demos via `<code src="./Button.tsx" />`
-- API table via `<API src="./Foo.tsx"/>` (cached by file hash)
+- Live demos via `<code src="./Button.tsx" />` (optional `title` heading, real file source shown by "View code")
+- API table via `<API src="./Foo.tsx"/>` (cached by file hash) or `library.api: 'auto'`
+- Library preset: component-folder routing, auto API, package-name alias
 - Theme override via `.dommief/theme/**`
 - i18n (base/suffix modes)
 - Client-side search (minisearch)
@@ -95,6 +99,42 @@ Flags: `--base`, `--outDir`, `--no-cache`, `--no-link-check`, `--config <path>`.
 - Sitemap & robots.txt
 - Link checking
 - Content-hash build cache
+
+## Library preset
+
+`preset: 'library'` dogfoods a component library from its source folder. Each component lives in its own folder and gets its own route:
+
+```
+```text
+src/
+  button/
+    Button.tsx          ← entry (index.tsx, index.ts, <folder>.tsx, <folder>.ts)
+    index.md            ← page: route /button
+    demo/
+      basic.tsx         ← imported as a demo by <code src="./demo/basic.tsx" />
+  index.ts              ← public entry, exported by the package
+```
+```
+
+```ts
+import { defineConfig } from 'dommief';
+export default defineConfig({
+  preset: 'library',
+  library: {
+    demoDir: 'demo',
+    api: 'auto',
+    importName: 'acme-ui',
+  },
+});
+```
+
+- `library.api: 'auto'` — a page placed directly in a component folder gets the API table from its entry, no `<API>` tag needed. Pages outside a component folder (e.g. a guide) are skipped silently.
+- `library.importName` — aliases `<importName>` to `src/index.ts`, so demos import from the package name (`import { Button } from 'acme-ui'`). The alias only applies to the library preset and to this folder; it does not resolve other workspace packages.
+- `<code src="./demo/basic.tsx" title="Basic" />` — demo source is read from the file (relative to the page), so "View code" shows the real code.
+- Demo toolbar labels ("View code", "Copy") are hardcoded in the client runtime and are not translated yet.
+- Workspace limitation: only the component-library folder itself is scanned; a monorepo `packages/*/src` layout is not aggregated into one site (DM-924 assumption).
+
+See `examples/library` for a complete dogfood site and `docs/library-preset.md` for the full option list.
 
 ## Đa ngôn ngữ (i18n)
 

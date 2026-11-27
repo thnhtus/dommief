@@ -61,6 +61,21 @@ README tiếng Anh + `docs/vi/README.md`, CHANGELOG, bump package `0.3.0`, full 
 
 Auto-generate route cho component không có markdown; iframe/playground/sandbox; `<DemoCard>`; dịch nội dung demo; auto changelog; cấu trúc monorepo `packages/*/src`; i18n runtime nhãn nút demo ("View code"/"Copy").
 
+## Trạng thái triển khai
+
+Đã xong toàn bộ Phase 10 ngày 2026-11-27 trên `master`:
+
+| Task | Issue | Trạng thái | Ghi chú |
+| --- | --- | --- | --- |
+| DM-921 | [#109](https://github.com/thnhtus/dommief/issues/109) | ✅ | `library` config + `scanComponents`/`findComponentEntry` |
+| DM-922 | [#110](https://github.com/thnhtus/dommief/issues/110) | ✅ | `<code src>` đọc file thật + `title` |
+| DM-923 | [#111](https://github.com/thnhtus/dommief/issues/111) | ✅ | `library.api: 'auto'` inject `<DomApi>`; plugin truyền `config` vào transform |
+| DM-924 | [#112](https://github.com/thnhtus/dommief/issues/112) | ✅ | alias `library.importName` → `src/index.ts` (config + dev server) |
+| DM-925 | [#113](https://github.com/thnhtus/dommief/issues/113) | ✅ | `examples/library` + `e2e/library.spec.ts` (port 4320) |
+| DM-926 | [#114](https://github.com/thnhtus/dommief/issues/114) | ✅ | README + `docs/library-preset.md` + CHANGELOG + release 0.3.0 |
+
+Gate cuối: `pnpm typecheck` sạch, `pnpm test` 47 files / 283 pass, `pnpm lint` 0 error (175 warning baseline), Playwright 28 pass (docs + library).
+
 ## Rủi ro / giả định cần xác nhận khi triển khai
 
 - Docgen options mặc định parse TSX/React 19 tốt hay không: kiểm bằng fixture, chỉnh trong DM-923 nếu cần.
